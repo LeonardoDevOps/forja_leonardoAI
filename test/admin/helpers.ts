@@ -1,6 +1,6 @@
 import type { Env } from "../../src/env";
 
-export type StubRow = Record<string, unknown>;
+export type StubRow = object;
 
 export interface SqlMatcher {
   frag: string;
