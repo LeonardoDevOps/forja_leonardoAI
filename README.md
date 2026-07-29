@@ -141,6 +141,26 @@ El Starter de este repo sirve para **cualquier negocio**. Si quieres ir más all
 
 Como dueño del negocio, **tú eres el responsable** de esos datos: avisa a tus clientes que la atención es automatizada y que guardas la conversación, y atiende las solicitudes de borrado. Todo el detalle está en [`PRIVACY.md`](./PRIVACY.md).
 
+### Seguridad de medios remotos
+
+Los audios e imágenes solo se aceptan desde hostnames HTTPS exactos. Telegram,
+Twilio y el proxy firmado de WhatsApp usan hosts derivados del propio proveedor
+o de `DASHBOARD_BASE_URL`. ManyChat, adaptadores aprendidos, Messenger e
+Instagram usan CDNs variables y quedan cerrados por defecto hasta configurar la
+variable no secreta `MEDIA_ALLOWED_HOSTS` con una lista de hostnames exactos
+separados por comas.
+
+No uses URLs, puertos, paths, IPs ni comodines en esa lista. Cada hostname amplía
+la superficie de descarga y debe pertenecer a un proveedor administrado por ti.
+La política se vuelve a aplicar en cada redirección y mantiene límites de tiempo
+y tamaño.
+
+Esta allowlist reduce el riesgo de SSRF y DNS rebinding desde payloads
+arbitrarios, pero un dominio permitido que sea comprometido o cambie su DNS
+sigue siendo un riesgo residual. Instalaciones con requisitos estrictos deben
+añadir un egress confiable mediante un Service Binding o proxy que aplique
+políticas de resolución y red.
+
 ---
 
 ## 🤝 Contribuir

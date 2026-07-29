@@ -48,6 +48,22 @@ Los problemas de configuración que requieren exponer deliberadamente el panel, 
 credenciales débiles o modificar el código pueden quedar fuera de alcance, pero se
 agradece reportarlos de forma privada si producen un riesgo inesperado.
 
+## Descarga de medios y egress
+
+Forja valida las URLs de audio e imagen con una política cerrada por canal:
+HTTPS, puerto estándar, ausencia de credenciales, bloqueo de hosts locales e IPs
+privadas y una allowlist de hostnames exactos. Cada destino de redirección se
+valida con la misma política. Los canales con CDN variable requieren
+`MEDIA_ALLOWED_HOSTS`; sin esa configuración, el medio se rechaza y no se
+descarga.
+
+No se permiten comodines ni coincidencias por sufijo. Aun así, esta medida no
+garantiza la IP o ASN final: Cloudflare Workers no ofrece a este código una
+resolución DNS y conexión atómicas bajo una política de egress propia. Permanece
+riesgo de DNS rebinding o compromiso en un hostname autorizado. Para entornos
+que necesiten eliminar ese residual, usa un Service Binding o proxy de egress
+con resolución DNS y controles de red confiables.
+
 ## Respuesta
 
 Los mantenedores intentarán confirmar la recepción, evaluar severidad y acordar una
