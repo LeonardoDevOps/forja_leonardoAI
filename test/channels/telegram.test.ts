@@ -115,4 +115,10 @@ describe("resolveTelegramFileUrl", () => {
     const url = await resolveTelegramFileUrl("x", "tok");
     expect(url).toBeNull();
   });
+
+  it("returns null when Telegram returns a malformed file_path", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({ ok: true, result: { file_path: 42 } }));
+
+    await expect(resolveTelegramFileUrl("x", "tok")).resolves.toBeNull();
+  });
 });

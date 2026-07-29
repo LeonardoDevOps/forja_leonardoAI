@@ -30,6 +30,15 @@ describe("transcribeAudio", () => {
     expect(calls[0].input.audio).toBe(Buffer.from([1, 2, 3]).toString("base64"));
   });
 
+  it("returns empty text when Workers AI returns an unexpected shape", async () => {
+    const fakeEnv: any = { AI: { run: vi.fn(async () => ({ text: 42 })) } };
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(new Uint8Array([1, 2, 3])));
+
+    await expect(transcribeAudio("https://media.example.com/audio.ogg", fakeEnv, policy)).resolves.toEqual({
+      text: "",
+    });
+  });
+
   it("rejects private audio URLs before making a request", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     await expect(transcribeAudio("http://127.0.0.1/private.ogg", {} as any, policy)).rejects.toThrow(
