@@ -22,7 +22,7 @@ entregar una rama revisable con informe local.
 - [x] Revisar diff completo, placeholders, `member/`, secretos y permisos de workflows.
 - [x] Generar el informe local con resultados antes/después, riesgos y reversión segura.
 - [x] Crear commits revisables.
-- [ ] Comprobar autenticación sin leer tokens; publicar rama y crear PR borrador cuando sea posible.
+- [x] Comprobar autenticación sin leer tokens; publicar rama y crear PR borrador cuando sea posible.
 
 ## Aceptación
 
