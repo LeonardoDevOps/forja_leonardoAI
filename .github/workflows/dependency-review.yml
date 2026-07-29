@@ -14,6 +14,9 @@ concurrency:
 jobs:
   review:
     name: Revisar dependencias
+    # GitHub's dependency-review API returns 403 for fork repositories.
+    # Keep enforcement enabled for standalone/upstream installations.
+    if: github.event.repository.fork == false
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
