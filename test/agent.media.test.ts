@@ -162,7 +162,7 @@ describe("SupportAgent.ingest — media (Task 6.3)", () => {
     await agent.ingest({
       channel: "telegram",
       channelUserId: "u1",
-      audioUrl: "https://example.com/voice.ogg",
+      audioUrl: "https://api.telegram.org/file/bottest/voice.ogg",
     });
 
     expect(agent.env.AI.run).toHaveBeenCalled();
@@ -179,9 +179,24 @@ describe("SupportAgent.ingest — media (Task 6.3)", () => {
     await agent.ingest({
       channel: "telegram",
       channelUserId: "u1",
-      audioUrl: "https://example.com/voice.ogg",
+      audioUrl: "https://api.telegram.org/file/bottest/voice.ogg",
     });
 
+    expect(agent.state.pendingMessages[0].text).toBe("(no pude entender el audio)");
+  });
+
+  it("rejects an unapproved audio host without fetching or calling Workers AI", async () => {
+    const { agent } = makeAgent();
+    stubConversations();
+
+    await agent.ingest({
+      channel: "telegram",
+      channelUserId: "u1",
+      audioUrl: "https://attacker.example/voice.ogg?signature=sensitive",
+    });
+
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(agent.env.AI.run).not.toHaveBeenCalled();
     expect(agent.state.pendingMessages[0].text).toBe("(no pude entender el audio)");
   });
 
@@ -193,7 +208,7 @@ describe("SupportAgent.ingest — media (Task 6.3)", () => {
       channel: "telegram",
       channelUserId: "u1",
       text: "mira esto",
-      imageUrl: "https://example.com/pic.png",
+      imageUrl: "https://api.telegram.org/file/bottest/pic.png",
     });
 
     const buffered = agent.state.pendingMessages[0].text;
@@ -210,13 +225,30 @@ describe("SupportAgent.ingest — media (Task 6.3)", () => {
       channel: "telegram",
       channelUserId: "u1",
       text: "describe esta foto",
-      imageUrl: "https://example.com/pic.png",
+      imageUrl: "https://api.telegram.org/file/bottest/pic.png",
     });
 
     const buffered = agent.state.pendingMessages[0].text;
     expect(buffered).toContain("describe esta foto");
-    expect(buffered).toContain("[IMAGE_URL: https://example.com/pic.png]");
+    expect(buffered).toContain("[IMAGE_URL: https://api.telegram.org/file/bottest/pic.png]");
     expect(agent.state.imageRetryCount).toBe(0);
+  });
+
+  it("pro tier: rejects an unapproved public image host without persisting its URL", async () => {
+    const { agent } = makeAgent({ tier: "pro" });
+    stubConversations();
+
+    await agent.ingest({
+      channel: "telegram",
+      channelUserId: "u1",
+      text: "describe esta foto",
+      imageUrl: "https://attacker.example/pic.png?signature=sensitive",
+    });
+
+    const buffered = agent.state.pendingMessages[0].text;
+    expect(buffered).toContain("No pude procesar la imagen");
+    expect(buffered).not.toContain("attacker.example");
+    expect(buffered).not.toContain("IMAGE_URL");
   });
 });
 
@@ -258,13 +290,16 @@ describe("SupportAgent.alarm — multimodal last message (Task 6.3)", () => {
   it("pro tier: builds a multimodal message from the [IMAGE_URL] marker", async () => {
     const messages = await runAlarm({
       tier: "pro",
-      lastContent: "describe esto\n[IMAGE_URL: https://example.com/pic.png]",
+      lastContent: "describe esto\n[IMAGE_URL: https://api.telegram.org/file/bottest/pic.png]",
     });
 
     const last = messages[messages.length - 1];
     expect(Array.isArray(last.content)).toBe(true);
     expect(last.content).toEqual([
-      { type: "image", image: new URL("https://example.com/pic.png") },
+      {
+        type: "image",
+        image: new URL("https://api.telegram.org/file/bottest/pic.png"),
+      },
       { type: "text", text: "describe esto" },
     ]);
   });

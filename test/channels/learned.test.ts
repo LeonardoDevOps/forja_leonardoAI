@@ -14,7 +14,11 @@ beforeEach(async () => {
   const mf = await createTestMiniflare();
   d1 = await mf.getD1Database("DB");
   repo = new SettingsRepo(new Db(d1));
-  env = { DB: d1, MANYCHAT_API_KEY: "key" } as unknown as Env;
+  env = {
+    DB: d1,
+    MANYCHAT_API_KEY: "key",
+    MEDIA_ALLOWED_HOSTS: "cdn.example.com",
+  } as unknown as Env;
 });
 
 afterEach(() => vi.restoreAllMocks());
@@ -39,7 +43,7 @@ describe("makeLearnedAdapter.parseIncoming — with a learned mapping", () => {
         user: { uid: 7788 }, // number id -> stringified
         message: { body: "hola desde n8n" },
       },
-      media: { voice: { link: "https://cdn/voice.ogg" } },
+      media: { voice: { link: "https://cdn.example.com/voice.ogg" } },
       meta: { source: "whatsapp" },
     };
     const msg = await adapter.parseIncoming(req(payload), env);
@@ -47,7 +51,7 @@ describe("makeLearnedAdapter.parseIncoming — with a learned mapping", () => {
     expect(msg.channel).toBe("manychat");
     expect(msg.channelUserId).toBe("7788");
     expect(msg.text).toBe("hola desde n8n");
-    expect(msg.audioUrl).toBe("https://cdn/voice.ogg");
+    expect(msg.audioUrl).toBe("https://cdn.example.com/voice.ogg");
     expect(msg.imageUrl).toBeUndefined();
     expect(msg.rawPayload).toEqual(payload);
   });
@@ -59,11 +63,11 @@ describe("makeLearnedAdapter.parseIncoming — with a learned mapping", () => {
     });
     const adapter = makeLearnedAdapter("make");
     const msg = await adapter.parseIncoming(
-      req({ id: "u1", attachments: [{ url: "https://cdn/p.png" }] }),
+      req({ id: "u1", attachments: [{ url: "https://cdn.example.com/p.png" }] }),
       env,
     );
     expect(msg.channelUserId).toBe("u1");
-    expect(msg.imageUrl).toBe("https://cdn/p.png");
+    expect(msg.imageUrl).toBe("https://cdn.example.com/p.png");
     expect(msg.text).toBeUndefined();
   });
 
@@ -109,11 +113,11 @@ describe("makeLearnedAdapter.parseIncoming — fallback ManyChat contract", () =
       req({
         id: "abc123",
         last_input_text: "[audio]",
-        attachments: [{ type: "audio", payload: { url: "https://cdn/a.mp3" } }],
+        attachments: [{ type: "audio", payload: { url: "https://cdn.example.com/a.mp3" } }],
       }),
       env,
     );
-    expect(msg.audioUrl).toBe("https://cdn/a.mp3");
+    expect(msg.audioUrl).toBe("https://cdn.example.com/a.mp3");
     expect(msg.text).toBeUndefined();
   });
 
@@ -123,12 +127,22 @@ describe("makeLearnedAdapter.parseIncoming — fallback ManyChat contract", () =
       req({
         id: "abc123",
         last_input_text: "ese corte",
-        attachments: [{ type: "image", payload: { url: "https://cdn/i.jpg" } }],
+        attachments: [{ type: "image", payload: { url: "https://cdn.example.com/i.jpg" } }],
       }),
       env,
     );
-    expect(msg.imageUrl).toBe("https://cdn/i.jpg");
+    expect(msg.imageUrl).toBe("https://cdn.example.com/i.jpg");
     expect(msg.text).toBe("ese corte");
+  });
+
+  it("drops a learned media URL whose host is not approved", async () => {
+    await saveLearnedMapping(repo, "untrusted", {
+      idPath: "id",
+      audioPath: "audio",
+    });
+    const adapter = makeLearnedAdapter("untrusted");
+    const msg = await adapter.parseIncoming(req({ id: "u2", audio: "https://attacker.example/a.mp3" }), env);
+    expect(msg.audioUrl).toBeUndefined();
   });
 });
 

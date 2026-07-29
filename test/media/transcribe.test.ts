@@ -1,7 +1,10 @@
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { transcribeAudio } from "../../src/media/transcribe";
+import { createMediaUrlPolicy } from "../../src/media/urlPolicy";
 
 describe("transcribeAudio", () => {
+  const policy = createMediaUrlPolicy(["media.example.com"]);
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -18,7 +21,7 @@ describe("transcribeAudio", () => {
     };
     // mock global fetch for the audio download
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(new Uint8Array([1, 2, 3])));
-    const result = await transcribeAudio("https://x/audio.ogg", fakeEnv);
+    const result = await transcribeAudio("https://media.example.com/audio.ogg", fakeEnv, policy);
     expect(result.text).toBe("hola que tal");
     expect(calls[0].model).toBe("@cf/openai/whisper-large-v3-turbo");
     // whisper-large-v3-turbo expects a base64 STRING (per Cloudflare docs), not bytes.
@@ -29,7 +32,17 @@ describe("transcribeAudio", () => {
 
   it("rejects private audio URLs before making a request", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
-    await expect(transcribeAudio("http://127.0.0.1/private.ogg", {} as any)).rejects.toThrow("media URL");
+    await expect(transcribeAudio("http://127.0.0.1/private.ogg", {} as any, policy)).rejects.toThrow(
+      "media URL",
+    );
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("rejects a public but unapproved host before making a request", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    await expect(transcribeAudio("https://attacker.example/audio.ogg", {} as any, policy)).rejects.toThrow(
+      "not allowed",
+    );
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
