@@ -3,78 +3,23 @@ import { adminApp } from "../../src/admin/routes";
 import { ADMIN_USERNAME } from "../../src/admin/auth";
 import { SETTING_KEYS } from "../../src/db/settings";
 import type { Env } from "../../src/env";
-
-type Row = Record<string, unknown>;
-
-/**
- * Minimal in-memory D1 stub: returns canned results based on a matcher list.
- * Each query is matched in order; the first matching SQL fragment wins.
- * `run` records executed SQL + bound params for assertions.
- */
-function makeStubDb(
-  matchers: Array<{ frag: string; first?: Row; all?: Row[] }> = [],
-  runLog?: Array<{ sql: string; params: unknown[] }>,
-): D1Database {
-  const handler = (sql: string) => {
-    for (const m of matchers) {
-      if (sql.includes(m.frag)) return m;
-    }
-    return { first: undefined, all: [] as Row[] };
-  };
-  const makeStmt = (sql: string) => {
-    const matched = handler(sql);
-    let bound: unknown[] = [];
-    const stmt: any = {
-      bind: (...args: unknown[]) => {
-        bound = args;
-        return stmt;
-      },
-      first: async () => matched.first ?? null,
-      all: async () => ({ results: matched.all ?? [] }),
-      run: async () => {
-        runLog?.push({ sql, params: bound });
-        return {};
-      },
-    };
-    return stmt;
-  };
-  return {
-    prepare: (sql: string) => makeStmt(sql),
-  } as unknown as D1Database;
-}
+import { adminRequest, basicHeader, makeAdminEnv, makeStubDb } from "./helpers";
 
 const PASSWORD = "secret123";
 
 function makeEnv(db: D1Database = makeStubDb()): Env {
-  return {
-    DB: db,
-    DASHBOARD_PASSWORD: PASSWORD,
-    BUSINESS_NAME: "Test Biz",
-    BOT_LANGUAGE: "es",
-    BOT_TIER: "pro",
-    BUFFER_SECONDS: "8",
-    OWNER_EMAIL: "owner@example.com",
-  } as unknown as Env;
-}
-
-function basicHeader(user: string, pass: string): string {
-  const token = Buffer.from(`${user}:${pass}`).toString("base64");
-  return `Basic ${token}`;
-}
-
-function req(path: string, init?: RequestInit): Request {
-  return new Request(`https://bot.test${path}`, init);
+  return makeAdminEnv(db, { DASHBOARD_PASSWORD: PASSWORD });
 }
 
 describe("admin routes — auth", () => {
   it("returns 401 without an Authorization header", async () => {
-    const res = await adminApp.fetch(req("/overview"), makeEnv());
+    const res = await adminApp.fetch(adminRequest("/overview"), makeEnv());
     expect(res.status).toBe(401);
   });
 
   it("returns 401 with wrong credentials", async () => {
     const res = await adminApp.fetch(
-      req("/overview", { headers: { Authorization: basicHeader(ADMIN_USERNAME, "wrong") } }),
+      adminRequest("/overview", { headers: { Authorization: basicHeader(ADMIN_USERNAME, "wrong") } }),
       makeEnv(),
     );
     expect(res.status).toBe(401);
@@ -90,7 +35,7 @@ describe("admin routes — auth", () => {
       ]),
     );
     const res = await adminApp.fetch(
-      req("/overview", { headers: { Authorization: basicHeader(ADMIN_USERNAME, PASSWORD) } }),
+      adminRequest("/overview", { headers: { Authorization: basicHeader(ADMIN_USERNAME, PASSWORD) } }),
       env,
     );
     expect(res.status).toBe(200);
@@ -107,30 +52,30 @@ describe("admin routes — navigation", () => {
   const authHeaders = { Authorization: basicHeader(ADMIN_USERNAME, PASSWORD) };
 
   it("redirects / to /admin/overview", async () => {
-    const res = await adminApp.fetch(req("/", { headers: authHeaders }), makeEnv());
+    const res = await adminApp.fetch(adminRequest("/", { headers: authHeaders }), makeEnv());
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe("/admin/overview");
   });
 
   it("renders leads tab", async () => {
-    const res = await adminApp.fetch(req("/leads", { headers: authHeaders }), makeEnv());
+    const res = await adminApp.fetch(adminRequest("/leads", { headers: authHeaders }), makeEnv());
     expect(res.status).toBe(200);
     expect(await res.text()).toContain("Leads");
   });
 
   it("renders tickets tab", async () => {
-    const res = await adminApp.fetch(req("/tickets", { headers: authHeaders }), makeEnv());
+    const res = await adminApp.fetch(adminRequest("/tickets", { headers: authHeaders }), makeEnv());
     expect(res.status).toBe(200);
   });
 
   it("renders config tab", async () => {
-    const res = await adminApp.fetch(req("/config", { headers: authHeaders }), makeEnv());
+    const res = await adminApp.fetch(adminRequest("/config", { headers: authHeaders }), makeEnv());
     expect(res.status).toBe(200);
     expect(await res.text()).toContain("Test Biz");
   });
 
   it("exports leads as CSV", async () => {
-    const res = await adminApp.fetch(req("/leads/export.csv", { headers: authHeaders }), makeEnv());
+    const res = await adminApp.fetch(adminRequest("/leads/export.csv", { headers: authHeaders }), makeEnv());
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/csv");
     expect(res.headers.get("content-disposition")).toContain("attachment");
@@ -145,7 +90,7 @@ describe("admin routes — mutations", () => {
     const env = makeEnv(makeStubDb([], runLog));
     const body = new URLSearchParams({ status: "sold" });
     const res = await adminApp.fetch(
-      req("/leads/lead-1/status", {
+      adminRequest("/leads/lead-1/status", {
         method: "POST",
         headers: { ...authHeaders, "Content-Type": "application/x-www-form-urlencoded" },
         body,
@@ -165,7 +110,7 @@ describe("admin routes — mutations", () => {
     const env = makeEnv(makeStubDb([], runLog));
     const body = new URLSearchParams({ status: "bogus" });
     await adminApp.fetch(
-      req("/leads/lead-2/status", {
+      adminRequest("/leads/lead-2/status", {
         method: "POST",
         headers: { ...authHeaders, "Content-Type": "application/x-www-form-urlencoded" },
         body,
@@ -181,7 +126,7 @@ describe("admin routes — mutations", () => {
     const env = makeEnv(makeStubDb([], runLog));
     const body = new URLSearchParams({ resolved_by: "me@example.com" });
     const res = await adminApp.fetch(
-      req("/tickets/ticket-1/resolve", {
+      adminRequest("/tickets/ticket-1/resolve", {
         method: "POST",
         headers: { ...authHeaders, "Content-Type": "application/x-www-form-urlencoded" },
         body,
@@ -200,7 +145,7 @@ describe("admin routes — mutations", () => {
     const runLog: Array<{ sql: string; params: unknown[] }> = [];
     const env = makeEnv(makeStubDb([], runLog));
     const res = await adminApp.fetch(
-      req("/conversations/telegram:42/resume", { method: "POST", headers: authHeaders }),
+      adminRequest("/conversations/telegram:42/resume", { method: "POST", headers: authHeaders }),
       env,
     );
     expect(res.status).toBe(302);
@@ -213,7 +158,7 @@ describe("admin routes — mutations", () => {
   it("blocks a mutation without auth (401)", async () => {
     const env = makeEnv();
     const res = await adminApp.fetch(
-      req("/leads/lead-1/status", {
+      adminRequest("/leads/lead-1/status", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ status: "sold" }),
@@ -250,7 +195,7 @@ describe("admin routes — config save (POST /config)", () => {
       [SETTING_KEYS.botPaused]: "1", // raw value -> "1"
     });
     const res = await adminApp.fetch(
-      req("/config", {
+      adminRequest("/config", {
         method: "POST",
         headers: { ...authHeaders, "Content-Type": "application/x-www-form-urlencoded" },
         body,
@@ -278,7 +223,7 @@ describe("admin routes — config save (POST /config)", () => {
       [SETTING_KEYS.escalationKeywords]: "queja, reembolso",
     });
     await adminApp.fetch(
-      req("/config", {
+      adminRequest("/config", {
         method: "POST",
         headers: { ...authHeaders, "Content-Type": "application/x-www-form-urlencoded" },
         body,
@@ -298,7 +243,7 @@ describe("admin routes — config save (POST /config)", () => {
     const env = makeEnv(makeStubDb([], runLog));
     const body = new URLSearchParams({ [SETTING_KEYS.tone]: "bogus" });
     await adminApp.fetch(
-      req("/config", {
+      adminRequest("/config", {
         method: "POST",
         headers: { ...authHeaders, "Content-Type": "application/x-www-form-urlencoded" },
         body,
@@ -314,7 +259,7 @@ describe("admin routes — config save (POST /config)", () => {
     const runLog: Array<{ sql: string; params: unknown[] }> = [];
     const env = makeEnv(makeStubDb([], runLog));
     const res = await adminApp.fetch(
-      req("/config", {
+      adminRequest("/config", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ [SETTING_KEYS.tone]: "Formal" }),
