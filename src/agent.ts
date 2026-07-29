@@ -9,6 +9,7 @@ import { isPro } from "./config";
 import { resolveAgentConfig } from "./settings-loader";
 import { buildTools } from "./tools";
 import { buildMultimodalUserMessage } from "./media/vision";
+import { isSafeExternalMediaUrl, mediaHostPolicyFor } from "./media/urlPolicy";
 import { chunkReply } from "./replies/chunker";
 import { pickAdapter } from "./replies/sender";
 import { selectModel } from "./upgrade/modelSelector";
@@ -61,11 +62,7 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
   async ingest(payload: AgentIncomingPayload): Promise<{ acknowledged: true }> {
     const db = new Db(this.env.DB);
     const convs = new ConversationsRepo(db);
-    const conv = await convs.getOrCreate(
-      payload.channel,
-      payload.channelUserId,
-      payload.displayName,
-    );
+    const conv = await convs.getOrCreate(payload.channel, payload.channelUserId, payload.displayName);
     this.setState({
       ...this.state,
       channel: payload.channel,
@@ -123,33 +120,41 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
     if (payload.audioUrl) {
       try {
         const { transcribeAudio } = await import("./media/transcribe");
-        const result = await transcribeAudio(payload.audioUrl, this.env);
+        const policy = mediaHostPolicyFor(payload.channel, this.env);
+        const result = await transcribeAudio(payload.audioUrl, this.env, policy);
         processedText = result.text || "(audio sin transcripción)";
-      } catch (e) {
-        console.error("[ingest] transcription failed:", e);
+      } catch {
+        console.error(`[ingest] transcription rejected or failed for channel ${payload.channel}`);
         processedText = "(no pude entender el audio)";
       }
     }
 
     if (payload.imageUrl) {
-      hasImage = true;
-      // Pro-only: if free tier, strip the image and inform the bot owner-side
-      if (!isPro(this.env)) {
+      let imageAllowed = false;
+      try {
+        imageAllowed = isSafeExternalMediaUrl(
+          payload.imageUrl,
+          mediaHostPolicyFor(payload.channel, this.env),
+        );
+      } catch {
+        imageAllowed = false;
+      }
+      if (!imageAllowed) {
+        console.warn(`[ingest] rejected image host for channel ${payload.channel}`);
+        processedText = (processedText || "") + "\n(No pude procesar la imagen recibida.)";
+      } else if (!isPro(this.env)) {
+        // Pro-only: if free tier, strip the image and inform the bot owner-side
         processedText =
           (processedText || "") +
           "\n(El cliente mandó una imagen, pero tu plan no soporta análisis de imágenes.)";
       } else {
-        processedText =
-          (processedText || "(imagen sin caption)") +
-          `\n[IMAGE_URL: ${payload.imageUrl}]`;
+        hasImage = true;
+        processedText = (processedText || "(imagen sin caption)") + `\n[IMAGE_URL: ${payload.imageUrl}]`;
       }
     }
 
     // Append to buffer (we always persist the client's message)
-    const pending = [
-      ...this.state.pendingMessages,
-      { text: processedText, receivedAt: Date.now() },
-    ];
+    const pending = [...this.state.pendingMessages, { text: processedText, receivedAt: Date.now() }];
     this.setState({
       ...this.state,
       pendingMessages: pending,
@@ -166,20 +171,19 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
       return { acknowledged: true };
     }
 
-    // Schedule buffer processing via the agents SDK scheduler.
-    // The SDK overrides alarm() to dispatch named callbacks from its
-    // cf_agents_schedules table, so raw ctx.storage.setAlarm() alone won't
-    // invoke our code. We upsert a fixed 'msg-buffer' row (so rapid messages
-    // debounce to a single fire) and set the raw alarm as the trigger.
+    // Schedule buffer processing via the agents SDK public scheduler. Cancel
+    // every previous delayed processBuffer task first so rapid messages
+    // debounce to a single execution without depending on the SDK's private
+    // SQLite schema.
+    const pendingBufferSchedules = this.getSchedules({ type: "delayed" }).filter(
+      (schedule) => schedule.callback === "processBuffer",
+    );
+    for (const schedule of pendingBufferSchedules) {
+      await this.cancelSchedule(schedule.id);
+    }
+
     const alarmAt = Date.now() + cfg.bufferMs;
-    const alarmAtSec = Math.floor(alarmAt / 1000);
-    this.sql`
-      INSERT OR REPLACE INTO cf_agents_schedules
-        (id, callback, payload, type, time, created_at)
-      VALUES
-        ('msg-buffer', 'processBuffer', '{}', 'delayed', ${alarmAtSec}, unixepoch())
-    `;
-    await this.ctx.storage.setAlarm(alarmAt);
+    await this.schedule(cfg.bufferMs / 1000, "processBuffer", {});
     this.setState({ ...this.state, lastAlarmAt: alarmAt });
 
     return { acknowledged: true };
@@ -195,7 +199,10 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
     this.setState({ ...this.state, pendingMessages: [] });
     if (buffered.length === 0) return;
 
-    const combined = buffered.map((m) => m.text).join("\n").trim();
+    const combined = buffered
+      .map((m) => m.text)
+      .join("\n")
+      .trim();
     if (!combined) return;
 
     const db = new Db(this.env.DB);
@@ -214,11 +221,7 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
     // Load history (last 20)
     const history = await msgs.lastN(convId, 20);
     const aiMessages: any[] = history.slice(0, -1).map((m) => ({
-      role: (m.role === "tool"
-        ? "user"
-        : m.role === "owner"
-          ? "assistant"
-          : m.role) as "user" | "assistant",
+      role: (m.role === "tool" ? "user" : m.role === "owner" ? "assistant" : m.role) as "user" | "assistant",
       content: m.content,
     }));
     // Build the LAST user message multimodal-aware: if it carries an
@@ -228,10 +231,14 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
       const imgMatch = lastUserMsg.content.match(/\[IMAGE_URL: (.+?)\]/);
       if (imgMatch && isPro(this.env)) {
         const imageUrl = imgMatch[1];
-        const cleanText = lastUserMsg.content
-          .replace(/\n?\[IMAGE_URL: .+?\]/, "")
-          .trim();
-        aiMessages.push(buildMultimodalUserMessage(cleanText, imageUrl));
+        const cleanText = lastUserMsg.content.replace(/\n?\[IMAGE_URL: .+?\]/, "").trim();
+        try {
+          const policy = mediaHostPolicyFor(this.state.channel, this.env);
+          aiMessages.push(buildMultimodalUserMessage(cleanText, imageUrl, policy));
+        } catch {
+          console.warn(`[processBuffer] rejected persisted image host for channel ${this.state.channel}`);
+          aiMessages.push({ role: "user", content: cleanText || "(imagen no disponible)" });
+        }
       } else {
         aiMessages.push({ role: "user", content: lastUserMsg.content });
       }
@@ -380,9 +387,7 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
       }
 
       if (!ok && fb) {
-        console.warn(
-          `[SupportAgent] failover ${primary.provider} → ${fb.provider}/${fb.modelId}`,
-        );
+        console.warn(`[SupportAgent] failover ${primary.provider} → ${fb.provider}/${fb.modelId}`);
         try {
           await attempt(fb.model);
           usedModelId = fb.modelId;

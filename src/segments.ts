@@ -114,11 +114,7 @@ function whereFor(segmentId: string): { joins: string; where: string } {
 }
 
 /** Miembros de un segmento, cada uno con su estado de ventana de 24h. */
-export async function segmentMembers(
-  db: Db,
-  segmentId: string,
-  now = Date.now(),
-): Promise<SegmentMember[]> {
+export async function segmentMembers(db: Db, segmentId: string, now = Date.now()): Promise<SegmentMember[]> {
   const { joins, where } = whereFor(segmentId);
   const rows = await db.all<Omit<SegmentMember, "inWindow">>(
     `${MEMBER_SELECT}

@@ -231,10 +231,10 @@ const GLOBAL_SCRIPT = `
 </script>`;
 
 function navItem(item: Item, active: boolean): string {
-  const base =
-    "display:flex;align-items:center;gap:11px;padding:9px 10px;font-size:13px;";
+  const base = "display:flex;align-items:center;gap:11px;padding:9px 10px;font-size:13px;";
   const style = active
-    ? base + "color:var(--cream);background:var(--accent-soft);border-left:2px solid var(--accent);font-weight:600"
+    ? base +
+      "color:var(--cream);background:var(--accent-soft);border-left:2px solid var(--accent);font-weight:600"
     : base + "color:var(--muted);border-left:2px solid transparent";
   const iconColor = active ? "var(--accent)" : "var(--dim)";
   return `<a href="${item.href}" class="navlink" style="${style}">
@@ -365,14 +365,22 @@ export function layout(opts: { title: string; activeTab: string; body: string; e
 // el nav. `feature` es el nombre del tab que pidió (para personalizar el copy).
 export function renderUpgrade(env: Env, feature?: string): string {
   const perks = [
-    ["scan-eye", "Analista IA", "Resúmenes automáticos de cada conversación: qué querían, objeciones y oportunidad de venta."],
+    [
+      "scan-eye",
+      "Analista IA",
+      "Resúmenes automáticos de cada conversación: qué querían, objeciones y oportunidad de venta.",
+    ],
     ["bar-chart-3", "Estadísticas", "Métricas de volumen, retención y desempeño de tu bot en el tiempo."],
     ["receipt", "Costos", "Cuánto gasta tu bot en IA, con tope de presupuesto mensual."],
     ["sparkles", "Mejoras", "El bot detecta huecos en su conocimiento y se mejora solo (flywheel)."],
     ["megaphone", "Campañas", "Manda difusiones y seguimientos por WhatsApp a tus segmentos."],
   ]
     .map(
-      ([icon, title, desc]) => `<div style="display:flex;gap:12px;padding:14px;border:1px solid var(--line);background:var(--panel)">
+      ([
+        icon,
+        title,
+        desc,
+      ]) => `<div style="display:flex;gap:12px;padding:14px;border:1px solid var(--line);background:var(--panel)">
         <i data-lucide="${icon}" width="20" height="20" style="color:var(--accent);flex:none;margin-top:2px"></i>
         <div><div style="font-family:'Space Grotesk';font-weight:600;font-size:14px;margin-bottom:3px">${title}</div>
         <div style="font-size:12.5px;color:var(--muted);line-height:1.5">${desc}</div></div>

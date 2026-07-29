@@ -23,10 +23,7 @@ const PASSWORD = "secret123";
 
 function basicAuthHeader(user: string, pass: string): string {
   const raw = `${user}:${pass}`;
-  const b64 =
-    typeof btoa === "function"
-      ? btoa(raw)
-      : Buffer.from(raw, "utf-8").toString("base64");
+  const b64 = typeof btoa === "function" ? btoa(raw) : Buffer.from(raw, "utf-8").toString("base64");
   return `Basic ${b64}`;
 }
 
@@ -194,9 +191,7 @@ describe("inbox — pause / resume", () => {
       env,
     );
     expect(res.status).toBe(302);
-    expect(res.headers.get("location")).toBe(
-      `/admin/conversations?c=${encodeURIComponent(conv.id)}`,
-    );
+    expect(res.headers.get("location")).toBe(`/admin/conversations?c=${encodeURIComponent(conv.id)}`);
     expect(await convs.isPaused(conv.id)).toBe(false);
 
     const history = await msgs.lastN(conv.id, 5);
@@ -214,8 +209,12 @@ describe("inbox — filtros por sentimiento del Analista", () => {
     const feliz = await convs.getOrCreate("manychat", "happy1", "Feliz");
     await msgs.append(feliz.id, "user", "todo excelente");
     const base = {
-      resolution: "resolved" as const, botScore: 4, topics: [], summary: "x",
-      missedKb: null, saleOpportunity: false,
+      resolution: "resolved" as const,
+      botScore: 4,
+      topics: [],
+      summary: "x",
+      missedKb: null,
+      saleOpportunity: false,
     };
     await insights.upsert({ ...base, conversationId: enojado.id, sentiment: "angry" });
     await insights.upsert({ ...base, conversationId: feliz.id, sentiment: "positive" });

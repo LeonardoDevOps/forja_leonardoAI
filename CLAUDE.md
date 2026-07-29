@@ -16,7 +16,7 @@ el archivo directo). Son 4 fases y el orden no se negocia:
 3. **TUS CONEXIONES** — canales uno por uno (Telegram, WhatsApp, Meta…) desde `/admin`.
 4. **PRUEBA FINAL** — mensaje real + resumen sin badges rojos.
 
-Antes de la Fase 1: verifica que existan **Node ≥18** y **pnpm** (`corepack enable pnpm`
+Antes de la Fase 1: verifica que existan **Node 20–24** y **pnpm 10.34.5** (`corepack enable pnpm`
 si falta), y explícale al usuario cómo funciona y cuánto cuesta — vive en SU cuenta de
 Cloudflare (~gratis, ~$5/mes con tráfico) y el cerebro es su propia llave de IA (~$1–2/mes).
 

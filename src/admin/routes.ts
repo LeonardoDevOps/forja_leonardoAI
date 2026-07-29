@@ -23,12 +23,7 @@ import { isPro } from "../config";
 import { renderOverview } from "./views/overview";
 import { renderStats } from "./views/stats";
 import { renderCosts } from "./views/costs";
-import {
-  renderInbox,
-  renderInboxList,
-  renderThreadLive,
-  renderSuggestionBox,
-} from "./views/conversations";
+import { renderInbox, renderInboxList, renderThreadLive, renderSuggestionBox } from "./views/conversations";
 import { pickAdapter } from "../replies/sender";
 import { channelLabel } from "../channels/labels";
 import type { ChannelId } from "../channels/shared";
@@ -57,6 +52,17 @@ import { systemPromptFromEnv } from "../system-prompt";
 import { renderBusinessContext } from "../businessContext";
 
 export const adminApp = new Hono<{ Bindings: Env }>();
+
+// The dashboard contains private customer data. Prevent browser/proxy caching,
+// framing and MIME sniffing without imposing a CSP that would break the
+// existing inline UI and explicitly configured CDN assets.
+adminApp.use("*", async (c, next) => {
+  await next();
+  c.header("Cache-Control", "no-store");
+  c.header("Referrer-Policy", "no-referrer");
+  c.header("X-Content-Type-Options", "nosniff");
+  c.header("X-Frame-Options", "DENY");
+});
 
 // Guard every admin route with Basic Auth. The middleware factory needs the
 // request-scoped Env to read DASHBOARD_PASSWORD, so build it per request here.
@@ -139,8 +145,12 @@ adminApp.get("/kb/:id/edit", async (c) => {
 // the doc are blanket-deleted first), so searchKb uses it on the next message.
 adminApp.post("/kb/save", async (c) => {
   const form = await c.req.formData();
-  const title = String(form.get("title") ?? "").trim().slice(0, 200);
-  const content = String(form.get("content") ?? "").trim().slice(0, MAX_DOC_CHARS);
+  const title = String(form.get("title") ?? "")
+    .trim()
+    .slice(0, 200);
+  const content = String(form.get("content") ?? "")
+    .trim()
+    .slice(0, MAX_DOC_CHARS);
   if (!title || !content) return c.redirect("/admin/kb");
 
   const id = String(form.get("id") ?? "").trim() || crypto.randomUUID();
@@ -294,9 +304,7 @@ adminApp.get("/agente", async (c) => c.html(await renderAgentePage(c.env)));
 
 adminApp.get("/agente/canvas", async (c) => c.html(await renderAgenteCanvas(c.env)));
 
-adminApp.get("/agente/node/:id", async (c) =>
-  c.html(await renderNodeModal(c.env, c.req.param("id"))),
-);
+adminApp.get("/agente/node/:id", async (c) => c.html(await renderNodeModal(c.env, c.req.param("id"))));
 
 // Save a node's config from its modal. Writes the relevant settings (with
 // clamps), re-renders the modal with a saved banner + toast, and fires the
@@ -384,7 +392,10 @@ adminApp.post("/campanas/send", async (c) => {
   const templateSid = String(form.get("template_sid") ?? "").trim();
   const varsRaw = String(form.get("template_vars") ?? "").trim();
   if (!segmentId || !campaignKey || (!freeformText && !templateSid)) {
-    return c.redirect("/admin/campanas?err=" + encodeURIComponent("Falta el segmento, el nombre de campaña, o un mensaje/plantilla."));
+    return c.redirect(
+      "/admin/campanas?err=" +
+        encodeURIComponent("Falta el segmento, el nombre de campaña, o un mensaje/plantilla."),
+    );
   }
   let variables: Record<string, string> | undefined;
   if (varsRaw) {
@@ -478,10 +489,7 @@ adminApp.post("/config", async (c) => {
   const provRaw = form.get(SETTING_KEYS.llmProvider);
   if (provRaw !== null) {
     const v = String(provRaw).trim().toLowerCase();
-    await repo.set(
-      SETTING_KEYS.llmProvider,
-      v === "anthropic" || v === "openai" || v === "xai" ? v : "",
-    );
+    await repo.set(SETTING_KEYS.llmProvider, v === "anthropic" || v === "openai" || v === "xai" ? v : "");
   }
   const modelRaw = form.get(SETTING_KEYS.llmModel);
   if (modelRaw !== null) {
@@ -610,8 +618,7 @@ adminApp.post("/conversations/:id/resume", async (c) => {
   // empty/no-content-type body).
   const form = await c.req.formData().catch(() => null);
   const summary =
-    String(form?.get("summary") ?? "").trim() ||
-    "(El dueño habló con el cliente y resolvió la consulta.)";
+    String(form?.get("summary") ?? "").trim() || "(El dueño habló con el cliente y resolvió la consulta.)";
   const msgs = new MessagesRepo(new Db(c.env.DB));
   await msgs.append(id, "owner", summary);
   return c.redirect(`/admin/conversations?c=${encodeURIComponent(id)}`);
@@ -623,7 +630,7 @@ adminApp.post("/conversations/:id/resume", async (c) => {
 function escapeHtml(s: string): string {
   return s.replace(
     /[&<>"']/g,
-    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]!),
+    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!,
   );
 }
 
@@ -639,9 +646,7 @@ adminApp.post("/conversations/:id/suggest", async (c) => {
   const history = await msgs.lastN(c.req.param("id"), 20);
   const { model } = createModel(c.env, "fast", await loadLlmOverrides(c.env));
   const aiMessages = history.map((m) => ({
-    role: (m.role === "tool" ? "user" : m.role === "owner" ? "assistant" : m.role) as
-      | "user"
-      | "assistant",
+    role: (m.role === "tool" ? "user" : m.role === "owner" ? "assistant" : m.role) as "user" | "assistant",
     content: m.content,
   }));
   aiMessages.push({

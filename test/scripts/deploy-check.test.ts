@@ -15,26 +15,26 @@ describe("validateDeployConfig", () => {
   });
 
   it("passes a Free config without DASHBOARD_PASSWORD", () => {
-    const { DASHBOARD_PASSWORD, ...rest } = full;
+    const { DASHBOARD_PASSWORD: _dashboardPassword, ...rest } = full;
     expect(validateDeployConfig({ ...rest, BOT_TIER: "free" }).ok).toBe(true);
   });
 
   it("fails when ANTHROPIC_API_KEY is missing", () => {
-    const { ANTHROPIC_API_KEY, ...rest } = full;
+    const { ANTHROPIC_API_KEY: _anthropicApiKey, ...rest } = full;
     const r = validateDeployConfig(rest);
     expect(r.ok).toBe(false);
     expect(r.errors.join(" ")).toContain("ANTHROPIC_API_KEY");
   });
 
   it("fails when no channel is configured", () => {
-    const { TELEGRAM_BOT_TOKEN, ...rest } = full;
+    const { TELEGRAM_BOT_TOKEN: _telegramBotToken, ...rest } = full;
     const r = validateDeployConfig(rest);
     expect(r.ok).toBe(false);
     expect(r.errors.join(" ")).toContain("canal");
   });
 
   it("fails Pro without DASHBOARD_PASSWORD", () => {
-    const { DASHBOARD_PASSWORD, ...rest } = full;
+    const { DASHBOARD_PASSWORD: _dashboardPassword, ...rest } = full;
     const r = validateDeployConfig(rest);
     expect(r.ok).toBe(false);
     expect(r.errors.join(" ")).toContain("DASHBOARD_PASSWORD");

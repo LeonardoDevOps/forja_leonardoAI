@@ -66,12 +66,14 @@ function toPosix(p: string): string {
 }
 
 function slug(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/\.[^./]+$/, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80) || "doc";
+  return (
+    s
+      .toLowerCase()
+      .replace(/\.[^./]+$/, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80) || "doc"
+  );
 }
 
 function firstHeadingOrName(content: string, fallback: string): string {
@@ -150,8 +152,7 @@ function main(): void {
 }
 
 // Run only when invoked directly (tsx scripts/generate-fixtures.ts), not on import.
-const INVOKED_DIRECTLY =
-  process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+const INVOKED_DIRECTLY = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (INVOKED_DIRECTLY) {
   main();
 }

@@ -4,8 +4,7 @@ import { scheduleAppointmentTool } from "../../src/tools/scheduleAppointment";
 describe("scheduleAppointmentTool", () => {
   it("creates Cal.com booking via API", async () => {
     global.fetch = vi.fn(
-      async () =>
-        new Response(JSON.stringify({ id: 12345, status: "ACCEPTED" }), { status: 201 }),
+      async () => new Response(JSON.stringify({ id: 12345, status: "ACCEPTED" }), { status: 201 }),
     ) as any;
     const env = { CALCOM_API_KEY: "fake", BOT_TIER: "pro" } as any;
     const tool = scheduleAppointmentTool(env, () => "conv_x");

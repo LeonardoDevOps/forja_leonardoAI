@@ -103,7 +103,9 @@ export async function resolveAgentConfig(env: Env, toolNames: string[]): Promise
   try {
     const parsed = JSON.parse(get(SETTING_KEYS.learnedLessons) ?? "[]");
     if (Array.isArray(parsed)) lessons = parsed.filter((l) => typeof l === "string");
-  } catch { /* malformed setting — ignore */ }
+  } catch {
+    /* malformed setting — ignore */
+  }
 
   // Dashboard tool toggles: the prompt only advertises the enabled tools, so
   // the model never tries to call something that was turned off.

@@ -18,8 +18,7 @@ export interface LearnedMapping {
 //   learn:<channel>:<kind>   -> JSON.stringify(raw captured payload)
 //   learn:<channel>:until    -> learn-mode expiration timestamp in ms (as string)
 const mappingKey = (channel: string): string => `map:${channel}`;
-const captureKey = (channel: string, kind: string): string =>
-  `learn:${channel}:${kind}`;
+const captureKey = (channel: string, kind: string): string => `learn:${channel}:${kind}`;
 const learnUntilKey = (channel: string): string => `learn:${channel}:until`;
 
 // ---- Learned mapping persistence -------------------------------------------
@@ -95,9 +94,6 @@ export async function startLearnMode(
   await repo.set(learnUntilKey(channel), String(until));
 }
 
-export async function stopLearnMode(
-  repo: SettingsRepo,
-  channel: string,
-): Promise<void> {
+export async function stopLearnMode(repo: SettingsRepo, channel: string): Promise<void> {
   await repo.set(learnUntilKey(channel), "0");
 }

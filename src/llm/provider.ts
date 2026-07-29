@@ -117,11 +117,7 @@ export function createModel(env: Env, tier: Tier, ov?: LlmOverrides): ResolvedMo
       : null;
   // Modelo elegido sin proveedor explícito → dedúcelo del id.
   if (!provider && ovModel) {
-    provider = /^grok/i.test(ovModel)
-      ? "xai"
-      : /^(gpt|o\d)/i.test(ovModel)
-        ? "openai"
-        : "anthropic";
+    provider = /^grok/i.test(ovModel) ? "xai" : /^(gpt|o\d)/i.test(ovModel) ? "openai" : "anthropic";
   }
   if (!provider) provider = resolveProvider(env);
 
@@ -156,11 +152,7 @@ export function createModel(env: Env, tier: Tier, ov?: LlmOverrides): ResolvedMo
  * proveedor DISTINTO al que falló que tenga API key en el env, con sus modelos
  * default del tier. null = no hay respaldo configurado.
  */
-export function fallbackModel(
-  env: Env,
-  tier: Tier,
-  failedProvider: LlmProvider,
-): ResolvedModel | null {
+export function fallbackModel(env: Env, tier: Tier, failedProvider: LlmProvider): ResolvedModel | null {
   const order: LlmProvider[] = ["anthropic", "openai", "xai"];
   for (const p of order) {
     if (p === failedProvider) continue;

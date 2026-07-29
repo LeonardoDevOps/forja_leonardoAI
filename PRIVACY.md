@@ -16,21 +16,21 @@ Existe una API opcional en `/api/*` para conectar el bot a un panel externo. Est
 
 Todo vive en **tu** D1 y **tu** Vectorize, dentro de tu cuenta de Cloudflare:
 
-| Dato | Dónde | Cuánto tiempo |
-|---|---|---|
-| Mensajes de la conversación | tabla `messages` | **90 días**, se borran solos (cron diario) |
-| Conversación (canal + id del usuario en ese canal) | `conversations` | mientras exista la conversación |
-| Leads capturados (nombre, contacto, notas) | `leads` | hasta que tú los borres |
-| Tickets (resumen + transcripción del caso) | `tickets` | hasta que tú los borres |
-| Datos que el bot deduce del cliente | `customer_facts` | hasta que tú los borres |
-| Resúmenes y etiquetas de la conversación | `conversation_insights`, `conv_labels` | hasta que tú los borres |
-| Clics en links del bot (solo el contador) | `tracked_links` | sin IP ni navegador |
+| Dato                                               | Dónde                                  | Cuánto tiempo                              |
+| -------------------------------------------------- | -------------------------------------- | ------------------------------------------ |
+| Mensajes de la conversación                        | tabla `messages`                       | **90 días**, se borran solos (cron diario) |
+| Conversación (canal + id del usuario en ese canal) | `conversations`                        | mientras exista la conversación            |
+| Leads capturados (nombre, contacto, notas)         | `leads`                                | hasta que tú los borres                    |
+| Tickets (resumen + transcripción del caso)         | `tickets`                              | hasta que tú los borres                    |
+| Datos que el bot deduce del cliente                | `customer_facts`                       | hasta que tú los borres                    |
+| Resúmenes y etiquetas de la conversación           | `conversation_insights`, `conv_labels` | hasta que tú los borres                    |
+| Clics en links del bot (solo el contador)          | `tracked_links`                        | sin IP ni navegador                        |
 
 El bot **no guarda audios ni imágenes**: los transcribe o los describe al vuelo y conserva solo el texto resultante.
 
 ## 3. A dónde sale la información
 
-Para poder responder, el texto de la conversación se envía al **proveedor de IA que tú elegiste** (Anthropic, OpenAI o xAI) con **tu** llave. Ese proveedor procesa el mensaje bajo *sus* términos: revísalos y, si tu giro maneja datos sensibles (salud, finanzas, menores), confirma que su política te sirve.
+Para poder responder, el texto de la conversación se envía al **proveedor de IA que tú elegiste** (Anthropic, OpenAI o xAI) con **tu** llave. Ese proveedor procesa el mensaje bajo _sus_ términos: revísalos y, si tu giro maneja datos sensibles (salud, finanzas, menores), confirma que su política te sirve.
 
 Las notas de voz se transcriben con **Workers AI**, que corre dentro de tu propia cuenta de Cloudflare.
 

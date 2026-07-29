@@ -34,7 +34,15 @@ export class SuggestionsRepo {
     await this.db.run(
       `INSERT INTO improvement_suggestions (id, kind, fingerprint, title, payload, evidence, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [id, input.kind, input.fingerprint, input.title, JSON.stringify(input.payload), input.evidence, Date.now()],
+      [
+        id,
+        input.kind,
+        input.fingerprint,
+        input.title,
+        JSON.stringify(input.payload),
+        input.evidence,
+        Date.now(),
+      ],
     );
     return id;
   }
@@ -65,9 +73,10 @@ export class SuggestionsRepo {
   }
 
   async setStatus(id: string, status: SuggestionStatus): Promise<void> {
-    await this.db.run(
-      "UPDATE improvement_suggestions SET status = ?, applied_at = ? WHERE id = ?",
-      [status, status === "proposed" ? null : Date.now(), id],
-    );
+    await this.db.run("UPDATE improvement_suggestions SET status = ?, applied_at = ? WHERE id = ?", [
+      status,
+      status === "proposed" ? null : Date.now(),
+      id,
+    ]);
   }
 }

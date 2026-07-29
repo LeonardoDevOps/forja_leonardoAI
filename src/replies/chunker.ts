@@ -7,7 +7,10 @@ export function chunkReply(text: string, maxChunks: number = DEFAULT_MAX_CHUNKS)
   if (cap === 1) return [trimmed];
 
   // Try paragraph split first (explicit breaks win over length)
-  const paras = trimmed.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  const paras = trimmed
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
   if (paras.length > 1 && paras.length <= cap) {
     return paras;
   }

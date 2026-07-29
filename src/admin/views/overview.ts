@@ -16,7 +16,7 @@ import { getNiche } from "../../niches";
 function esc(s: string): string {
   return s.replace(
     /[&<>"']/g,
-    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]!),
+    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!,
   );
 }
 
@@ -35,7 +35,12 @@ function ago(ms: number | null | undefined): string {
 function initialsOf(label: string): string {
   const parts = label.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";
-  return parts.slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("") || "?";
+  return (
+    parts
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase() ?? "")
+      .join("") || "?"
+  );
 }
 
 /** "auto" or the concrete model id the agent is pinned to. */
@@ -55,19 +60,22 @@ export async function renderOverview(env: Env): Promise<string> {
   const sevenDays = Date.now() - 7 * 86_400_000;
   const thirtyDays = Date.now() - 30 * 86_400_000;
 
-  const todayMsgs = (await db.first<{ n: number }>(
-    "SELECT COUNT(*) as n FROM messages WHERE created_at > ?", [oneDay],
-  ))?.n ?? 0;
-  const todayConvs = (await db.first<{ n: number }>(
-    "SELECT COUNT(DISTINCT conversation_id) as n FROM messages WHERE created_at > ?", [oneDay],
-  ))?.n ?? 0;
-  const todayLeads = (await db.first<{ n: number }>(
-    "SELECT COUNT(*) as n FROM leads WHERE created_at > ?", [oneDay],
-  ))?.n ?? 0;
+  const todayMsgs =
+    (await db.first<{ n: number }>("SELECT COUNT(*) as n FROM messages WHERE created_at > ?", [oneDay]))?.n ??
+    0;
+  const todayConvs =
+    (
+      await db.first<{ n: number }>(
+        "SELECT COUNT(DISTINCT conversation_id) as n FROM messages WHERE created_at > ?",
+        [oneDay],
+      )
+    )?.n ?? 0;
+  const todayLeads =
+    (await db.first<{ n: number }>("SELECT COUNT(*) as n FROM leads WHERE created_at > ?", [oneDay]))?.n ?? 0;
 
-  const monthMsgs = (await db.first<{ n: number }>(
-    "SELECT COUNT(*) as n FROM messages WHERE created_at > ?", [thirtyDays],
-  ))?.n ?? 0;
+  const monthMsgs =
+    (await db.first<{ n: number }>("SELECT COUNT(*) as n FROM messages WHERE created_at > ?", [thirtyDays]))
+      ?.n ?? 0;
 
   const tokenUsage = await db.all<{ model_used: string; input: number; output: number; cached: number }>(
     `SELECT model_used,
@@ -87,9 +95,8 @@ export async function renderOverview(env: Env): Promise<string> {
     });
   }
 
-  const openTickets = (await db.first<{ n: number }>(
-    "SELECT COUNT(*) as n FROM tickets WHERE status != 'resolved'",
-  ))?.n ?? 0;
+  const openTickets =
+    (await db.first<{ n: number }>("SELECT COUNT(*) as n FROM tickets WHERE status != 'resolved'"))?.n ?? 0;
 
   // --- Actividad 7 días ---------------------------------------------------------
   const activityRows = await db.all<{ day: string; msgs: number }>(
@@ -199,7 +206,8 @@ export async function renderOverview(env: Env): Promise<string> {
         const name = esc(label);
         const initials = initialsOf(label);
         const preview = esc((c.last_msg ?? "").replace(/\s+/g, " ").slice(0, 60)) || "—";
-        const chanColor = c.channel === "twilio" || c.channel === "whatsapp" ? "var(--info)" : "var(--accent-2)";
+        const chanColor =
+          c.channel === "twilio" || c.channel === "whatsapp" ? "var(--info)" : "var(--accent-2)";
         return `
         <a href="/admin/conversations?c=${encodeURIComponent(c.id)}" class="convrow flex items-center gap-3" style="padding:12px 18px;border-top:1px solid var(--line);cursor:pointer">
           <div class="flex items-center justify-center flex-none" style="width:36px;height:36px;background:var(--raise);border:1px solid var(--linelit);font-size:12px;font-weight:700;color:var(--accent)">${initials}</div>
@@ -214,7 +222,8 @@ export async function renderOverview(env: Env): Promise<string> {
           <i data-lucide="chevron-right" width="16" height="16" class="arr flex-none" style="color:var(--accent);opacity:0;transform:translateX(-4px);transition:all .15s ease"></i>
         </a>`;
       })
-      .join("") || `<div class="text-center text-[12.5px] text-dim" style="padding:32px 16px">Aún no hay conversaciones.</div>`;
+      .join("") ||
+    `<div class="text-center text-[12.5px] text-dim" style="padding:32px 16px">Aún no hay conversaciones.</div>`;
 
   const recentConversations = `
     <div class="card bg-panel border border-line" style="animation-delay:.3s">

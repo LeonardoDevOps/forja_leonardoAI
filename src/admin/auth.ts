@@ -64,10 +64,7 @@ function decodeBase64(input: string): string | null {
  * @param headerValue the raw `Authorization` header value (may be undefined/null)
  * @param env         environment carrying `DASHBOARD_PASSWORD`
  */
-export function checkBasicCredentials(
-  headerValue: string | null | undefined,
-  env: Env,
-): boolean {
+export function checkBasicCredentials(headerValue: string | null | undefined, env: Env): boolean {
   if (!headerValue) return false;
 
   const match = /^Basic\s+(.+)$/i.exec(headerValue.trim());

@@ -96,6 +96,10 @@ describe("admin routes — auth", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("mensajes");
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(res.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(res.headers.get("x-frame-options")).toBe("DENY");
   });
 });
 

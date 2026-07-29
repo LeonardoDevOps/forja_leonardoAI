@@ -101,7 +101,10 @@ describe("detectKbGaps", () => {
   it("drafts a kb_entry suggestion from a missed question and dedupes on re-run", async () => {
     await seedKbGap("u1", "¿Hacen envíos a Guadalajara?");
     generateTextMock.mockResolvedValue({
-      text: JSON.stringify({ title: "Envíos a Guadalajara", content: "Sí, hacemos envíos. [COMPLETA AQUÍ] el costo." }),
+      text: JSON.stringify({
+        title: "Envíos a Guadalajara",
+        content: "Sí, hacemos envíos. [COMPLETA AQUÍ] el costo.",
+      }),
     });
 
     const r1 = await detectKbGaps(env);

@@ -115,18 +115,13 @@ export async function runFollowups(
   // Cap diario global — el follow-up es un toque fino, no una campaña.
   const sentToday =
     (
-      await db.first<{ n: number }>(
-        "SELECT COUNT(*) as n FROM followup_sends WHERE sent_at > ?",
-        [now - 24 * 60 * 60 * 1000],
-      )
+      await db.first<{ n: number }>("SELECT COUNT(*) as n FROM followup_sends WHERE sent_at > ?", [
+        now - 24 * 60 * 60 * 1000,
+      ])
     )?.n ?? 0;
   if (sentToday >= dailyCap) return { sent: 0, skipped: 0, errors: 0 };
 
-  const candidates = await pickFollowupCandidates(
-    env,
-    now,
-    Math.min(limit, dailyCap - sentToday),
-  );
+  const candidates = await pickFollowupCandidates(env, now, Math.min(limit, dailyCap - sentToday));
   if (candidates.length === 0) return { sent: 0, skipped: 0, errors: 0 };
 
   const msgs = new MessagesRepo(db);

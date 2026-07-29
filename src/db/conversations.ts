@@ -19,16 +19,9 @@ function makeConvId(channel: string, channelUserId: string): string {
 export class ConversationsRepo {
   constructor(private readonly db: Db) {}
 
-  async getOrCreate(
-    channel: string,
-    channelUserId: string,
-    displayName?: string,
-  ): Promise<Conversation> {
+  async getOrCreate(channel: string, channelUserId: string, displayName?: string): Promise<Conversation> {
     const id = makeConvId(channel, channelUserId);
-    const existing = await this.db.first<Conversation>(
-      "SELECT * FROM conversations WHERE id = ?",
-      [id],
-    );
+    const existing = await this.db.first<Conversation>("SELECT * FROM conversations WHERE id = ?", [id]);
     if (existing) return existing;
 
     const now = Date.now();
@@ -37,24 +30,15 @@ export class ConversationsRepo {
        VALUES (?, ?, ?, ?, ?, ?)`,
       [id, channel, channelUserId, displayName ?? null, now, now],
     );
-    return (await this.db.first<Conversation>(
-      "SELECT * FROM conversations WHERE id = ?",
-      [id],
-    ))!;
+    return (await this.db.first<Conversation>("SELECT * FROM conversations WHERE id = ?", [id]))!;
   }
 
   async getById(id: string): Promise<Conversation | null> {
-    return this.db.first<Conversation>(
-      "SELECT * FROM conversations WHERE id = ?",
-      [id],
-    );
+    return this.db.first<Conversation>("SELECT * FROM conversations WHERE id = ?", [id]);
   }
 
   async setPausedUntil(id: string, until: number | null): Promise<void> {
-    await this.db.run(
-      "UPDATE conversations SET paused_until = ? WHERE id = ?",
-      [until, id],
-    );
+    await this.db.run("UPDATE conversations SET paused_until = ? WHERE id = ?", [until, id]);
   }
 
   async isPaused(id: string): Promise<boolean> {
@@ -64,16 +48,10 @@ export class ConversationsRepo {
   }
 
   async touchLastMessage(id: string, when: number = Date.now()): Promise<void> {
-    await this.db.run(
-      "UPDATE conversations SET last_message_at = ? WHERE id = ?",
-      [when, id],
-    );
+    await this.db.run("UPDATE conversations SET last_message_at = ? WHERE id = ?", [when, id]);
   }
 
   async setOpenTicket(id: string, ticketId: string | null): Promise<void> {
-    await this.db.run(
-      "UPDATE conversations SET open_ticket_id = ? WHERE id = ?",
-      [ticketId, id],
-    );
+    await this.db.run("UPDATE conversations SET open_ticket_id = ? WHERE id = ?", [ticketId, id]);
   }
 }

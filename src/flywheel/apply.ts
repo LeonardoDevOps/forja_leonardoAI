@@ -57,7 +57,6 @@ export async function dismissSuggestion(env: Env, id: string): Promise<boolean> 
   return true;
 }
 
-
 /**
  * Modo COPILOTO: auto-aplica las mejoras SEGURAS pendientes. Corre solo en el
  * cron nocturno cuando autonomy_level="copilot". Seguras = lecciones (vienen

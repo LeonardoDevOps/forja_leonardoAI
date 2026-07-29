@@ -26,7 +26,10 @@ app.get("/health", (c) => c.text("ok", 200));
 // Parse the provider payload via the channel adapter, derive the per-user DO id
 // (channel + ':' + channelUserId), and forward the normalized message to the
 // SupportAgent's `/ingest` endpoint. The DO buffers + schedules the alarm.
-async function routeToAgent(c: { req: { raw: Request }; env: Env; text: (t: string, s: number) => Response }, adapter: ChannelAdapter) {
+async function routeToAgent(
+  c: { req: { raw: Request }; env: Env; text: (t: string, s: number) => Response },
+  adapter: ChannelAdapter,
+) {
   try {
     const env = c.env;
     const msg = await adapter.parseIncoming(c.req.raw, env);
@@ -50,7 +53,7 @@ async function routeToAgent(c: { req: { raw: Request }; env: Env; text: (t: stri
     return c.text("ok", 200);
   } catch (e: any) {
     console.error("webhook error:", e);
-    return c.text(`err: ${e?.message ?? e}`, 500);
+    return c.text("internal error", 500);
   }
 }
 
@@ -68,7 +71,9 @@ app.post("/webhooks/twilio", async (c) => {
     return new Response("<Response></Response>", { status: 200, headers: { "Content-Type": "text/xml" } });
   }
   const doId = c.env.AGENT.idFromName(`${msg.channel}:${msg.channelUserId}`);
-  await c.env.AGENT.get(doId).ingest(msg).catch((e) => console.error("ingest:", e));
+  await c.env.AGENT.get(doId)
+    .ingest(msg)
+    .catch((e) => console.error("ingest:", e));
   return new Response("<Response></Response>", { status: 200, headers: { "Content-Type": "text/xml" } });
 });
 
@@ -220,8 +225,7 @@ export default {
   // Bind so Hono keeps its `this` when invoked as `worker.fetch(req, env, ctx)`
   // (both by the Cloudflare runtime and by tests). Passing `app.fetch` unbound
   // loses the receiver and throws "Cannot read properties of undefined".
-  fetch: (request: Request, env: Env, ctx: ExecutionContext) =>
-    app.fetch(request, env, ctx),
+  fetch: (request: Request, env: Env, ctx: ExecutionContext) => app.fetch(request, env, ctx),
   async scheduled(event: ScheduledController, env: Env): Promise<void> {
     // Follow-up bot: UN mensaje breve de seguimiento a leads que lo ameritan
     // (venta abierta / 4+ preguntas), dentro de la ventana de 24h y máximo una

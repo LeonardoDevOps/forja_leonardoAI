@@ -14,7 +14,7 @@ const ACCENT = "#f07a3f";
 function esc(s: string): string {
   return s.replace(
     /[&<>"']/g,
-    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]!),
+    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!,
   );
 }
 
@@ -64,8 +64,9 @@ function heatmap(cells: Map<string, number>): string {
     return `<tr><td class="pr-2 text-[9px] text-dim font-mono text-right">${name}</td>${tds}</tr>`;
   }).join("");
 
-  const hourLabels = Array.from({ length: 24 }, (_, h) =>
-    `<td class="text-[8px] text-dim font-mono text-center p-0">${h % 6 === 0 ? h : ""}</td>`,
+  const hourLabels = Array.from(
+    { length: 24 },
+    (_, h) => `<td class="text-[8px] text-dim font-mono text-center p-0">${h % 6 === 0 ? h : ""}</td>`,
   ).join("");
 
   return `
@@ -170,7 +171,9 @@ export async function renderStats(env: Env): Promise<string> {
   const costPerConv = nConvs > 0 ? cost30 / nConvs : null;
   const costPerLead = nLeads > 0 ? cost30 / nLeads : null;
   const resolvedPct =
-    insightStats.analyzed > 0 ? Math.round((insightStats.resolvedNoHuman / insightStats.analyzed) * 100) : null;
+    insightStats.analyzed > 0
+      ? Math.round((insightStats.resolvedNoHuman / insightStats.analyzed) * 100)
+      : null;
 
   const heatCells = new Map(heatRows.map((r) => [`${r.dow}:${r.hour}`, r.n]));
 
@@ -225,7 +228,16 @@ export async function renderStats(env: Env): Promise<string> {
         <div class="card bg-panel border border-line p-[18px]">
           <div class="font-display font-semibold text-[14px] mb-2.5">Tools más usadas</div>
           <table class="w-full text-[12px]"><tbody>
-            ${tools.filter((t) => t.tool).map((t) => `<tr style="border-top:1px solid var(--line)"><td class="py-2.5 text-accent2">${esc(t.tool)}</td><td class="text-right text-muted text-[11px]">${t.n}</td></tr>`).join("") || `<tr><td class="py-3 text-dim text-[12.5px]">Aún sin tool calls registradas.</td></tr>`}
+            ${
+              tools
+                .filter((t) => t.tool)
+                .map(
+                  (t) =>
+                    `<tr style="border-top:1px solid var(--line)"><td class="py-2.5 text-accent2">${esc(t.tool)}</td><td class="text-right text-muted text-[11px]">${t.n}</td></tr>`,
+                )
+                .join("") ||
+              `<tr><td class="py-3 text-dim text-[12.5px]">Aún sin tool calls registradas.</td></tr>`
+            }
           </tbody></table>
         </div>
       </div>

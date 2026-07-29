@@ -1,4 +1,10 @@
-import type { D1Database, DurableObjectNamespace, R2Bucket, VectorizeIndex, Ai } from "@cloudflare/workers-types";
+import type {
+  D1Database,
+  DurableObjectNamespace,
+  R2Bucket,
+  VectorizeIndex,
+  Ai,
+} from "@cloudflare/workers-types";
 import type { SupportAgent } from "./agent";
 
 export interface Env {
@@ -32,10 +38,14 @@ export interface Env {
   OPENAI_MODEL_SMART?: string;
   BUFFER_SECONDS: string;
   DASHBOARD_BASE_URL: string;
+  // Comma-separated exact hostnames approved for media from variable-CDN
+  // channels (ManyChat, learned adapters, Messenger and Instagram).
+  // This is configuration, not a secret. Wildcards and URLs are rejected.
+  MEDIA_ALLOWED_HOSTS?: string;
 
   // Secrets (member-set via wrangler secret put)
   ANTHROPIC_API_KEY: string;
-  OPENAI_API_KEY?: string;  // alternative LLM provider (see LLM_PROVIDER)
+  OPENAI_API_KEY?: string; // alternative LLM provider (see LLM_PROVIDER)
   RESEND_API_KEY?: string;
   TELEGRAM_BOT_TOKEN?: string;
   MANYCHAT_API_KEY?: string;
@@ -43,41 +53,41 @@ export interface Env {
   TWILIO_ACCOUNT_SID?: string;
   TWILIO_AUTH_TOKEN?: string;
   TWILIO_WA_FROM?: string;
-  TWILIO_HANDOFF_CONTENT_SID?: string;  // approved WhatsApp template for owner handoff DM
+  TWILIO_HANDOFF_CONTENT_SID?: string; // approved WhatsApp template for owner handoff DM
   // Meta oficial (Facebook Messenger + Instagram DMs, sin ManyChat).
-  META_PAGE_ACCESS_TOKEN?: string;  // Messenger / IG ligado a Página (graph.facebook.com)
-  INSTAGRAM_ACCESS_TOKEN?: string;  // Instagram API con Instagram Login, token IGAA… (graph.instagram.com)
-  META_VERIFY_TOKEN?: string;       // string que tú eliges; valida el handshake GET del webhook
+  META_PAGE_ACCESS_TOKEN?: string; // Messenger / IG ligado a Página (graph.facebook.com)
+  INSTAGRAM_ACCESS_TOKEN?: string; // Instagram API con Instagram Login, token IGAA… (graph.instagram.com)
+  META_VERIFY_TOKEN?: string; // string que tú eliges; valida el handshake GET del webhook
   META_APP_SECRET?: string;
   // "manychat" = los DMs de Instagram entran SOLO por ManyChat (el webhook
   // oficial de Meta los ignora para no procesarlos doble).
   IG_DM_SOURCE?: string;
   // "off" = canal oficial de IG apagado por completo (DMs). El bot de IG vive
   // solo en ManyChat.
-  IG_OFFICIAL?: string;         // App Secret de Facebook; firma los webhooks de Messenger
-  INSTAGRAM_APP_SECRET?: string;    // App Secret del producto Instagram (IG Login); firma los webhooks de IG
+  IG_OFFICIAL?: string; // App Secret de Facebook; firma los webhooks de Messenger
+  INSTAGRAM_APP_SECRET?: string; // App Secret del producto Instagram (IG Login); firma los webhooks de IG
   // WhatsApp OFICIAL (Cloud API de Meta, sin BSP/Twilio). Mismo ecosistema Graph
   // que Meta; el número corre en la cuenta del miembro con SU token. El envío es
   // a graph.facebook.com/<phone_number_id>/messages; el media entrante se sirve
   // por el proxy firmado /webhooks/whatsapp/media/:id (Cloud API exige el token
   // para descargarlo, así queda del lado del server).
-  WHATSAPP_PHONE_NUMBER_ID?: string;  // el Phone Number ID del número (no el número)
-  WHATSAPP_ACCESS_TOKEN?: string;     // token del system user / WABA (Bearer)
-  WHATSAPP_VERIFY_TOKEN?: string;     // handshake GET del webhook (si falta, usa META_VERIFY_TOKEN)
-  WHATSAPP_APP_SECRET?: string;       // firma X-Hub-Signature-256 (si falta, usa META_APP_SECRET)
-  XAI_API_KEY?: string;             // xAI (Grok) — proveedor LLM alterno (ver src/llm/provider.ts)
+  WHATSAPP_PHONE_NUMBER_ID?: string; // el Phone Number ID del número (no el número)
+  WHATSAPP_ACCESS_TOKEN?: string; // token del system user / WABA (Bearer)
+  WHATSAPP_VERIFY_TOKEN?: string; // handshake GET del webhook (si falta, usa META_VERIFY_TOKEN)
+  WHATSAPP_APP_SECRET?: string; // firma X-Hub-Signature-256 (si falta, usa META_APP_SECRET)
+  XAI_API_KEY?: string; // xAI (Grok) — proveedor LLM alterno (ver src/llm/provider.ts)
 
   // ── Cal.com (agenda real para scheduleAppointment) ───────────────────────
   // Con estas vars, el bot consulta disponibilidad real y reserva en Cal.com.
   // Sin ellas, scheduleAppointment solo registra la cita para que el dueño la confirme.
-  CALCOM_API_KEY?: string;                 // secret: API key de Cal.com (cal_...)
-  CALCOM_EVENT_TYPE_ID?: string;           // event type por defecto (numérico, como string)
-  CALCOM_EVENT_TYPES?: string;             // opcional: JSON {"corte":123,"barba":456} servicio→eventTypeId
-  CALCOM_TIMEZONE?: string;                // zona horaria (default America/Mexico_City)
-  GOOGLE_SERVICE_ACCOUNT_JSON?: string;  // base64-encoded JSON
-  OWNER_EMAIL: string;  // for handoff notifications (email)
-  OWNER_TELEGRAM_CHAT_ID?: string;  // for handoff notifications (default channel)
-  OWNER_WA_NUMBER?: string;  // for Pro handoff WhatsApp DM (requires template)
+  CALCOM_API_KEY?: string; // secret: API key de Cal.com (cal_...)
+  CALCOM_EVENT_TYPE_ID?: string; // event type por defecto (numérico, como string)
+  CALCOM_EVENT_TYPES?: string; // opcional: JSON {"corte":123,"barba":456} servicio→eventTypeId
+  CALCOM_TIMEZONE?: string; // zona horaria (default America/Mexico_City)
+  GOOGLE_SERVICE_ACCOUNT_JSON?: string; // base64-encoded JSON
+  OWNER_EMAIL: string; // for handoff notifications (email)
+  OWNER_TELEGRAM_CHAT_ID?: string; // for handoff notifications (default channel)
+  OWNER_WA_NUMBER?: string; // for Pro handoff WhatsApp DM (requires template)
 
   // HTTP Basic Auth password for the admin dashboard (secret).
   // Username is always "admin". Set via `wrangler secret put DASHBOARD_PASSWORD`.
@@ -94,6 +104,6 @@ export interface Env {
   // Control plane (hosted): glue para que un plano de control externo lea este
   // bot self-hosted vía los endpoints /api/*. Ambos opcionales; sin el token,
   // /api/* queda cerrado (fail-closed).
-  CONTROL_PLANE_TOKEN?: string;  // secret; Bearer que el control plane presenta para llamar /api/*
-  CONTROL_PLANE_URL?: string;    // base URL del control plane (para reportes / license check futuros)
+  CONTROL_PLANE_TOKEN?: string; // secret; Bearer que el control plane presenta para llamar /api/*
+  CONTROL_PLANE_URL?: string; // base URL del control plane (para reportes / license check futuros)
 }

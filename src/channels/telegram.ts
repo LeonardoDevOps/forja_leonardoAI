@@ -17,10 +17,7 @@ interface TgUpdate {
   };
 }
 
-export async function resolveTelegramFileUrl(
-  fileId: string,
-  token: string,
-): Promise<string | null> {
+export async function resolveTelegramFileUrl(fileId: string, token: string): Promise<string | null> {
   // Telegram files are NOT directly addressable by file_id. You must call
   // getFile to obtain a file_path, then download from
   // https://api.telegram.org/file/bot<token>/<file_path> (per Bot API docs).
@@ -60,8 +57,7 @@ export const telegramAdapter: ChannelAdapter = {
       // The owner intervenes from their own Telegram account: detect by matching
       // the sender against OWNER_TELEGRAM_CHAT_ID (the same id used for handoff DMs).
       isOwnerMessage:
-        env.OWNER_TELEGRAM_CHAT_ID != null &&
-        channelUserId === String(env.OWNER_TELEGRAM_CHAT_ID),
+        env.OWNER_TELEGRAM_CHAT_ID != null && channelUserId === String(env.OWNER_TELEGRAM_CHAT_ID),
       receivedAt: Date.now(),
       rawPayload: update,
     };
@@ -77,7 +73,7 @@ export const telegramAdapter: ChannelAdapter = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ chat_id: reply.channelUserId, action: "typing" }),
       }).catch(() => {});
-      const delay = i === 0 ? 0 : reply.interChunkDelayMs ?? 1000;
+      const delay = i === 0 ? 0 : (reply.interChunkDelayMs ?? 1000);
       if (delay > 0) await new Promise((r) => setTimeout(r, delay));
       await fetch(`${TG_API}${token}/sendMessage`, {
         method: "POST",

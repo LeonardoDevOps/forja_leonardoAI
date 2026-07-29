@@ -13,13 +13,13 @@ La persona con la que hablas probablemente NO sabe programar. Habla claro, en es
 
 Esto es la regla de oro de las actualizaciones. Memorízala:
 
-| Carpeta / archivo | Qué pasa al actualizar |
-|---|---|
-| `member/` (config, prompt, base de conocimiento) | **SE CONSERVA SIEMPRE.** Nunca la toques. |
-| `src/` (el cerebro del bot) | **Se sobrescribe** con la versión nueva del template. |
-| Secrets de Cloudflare (`wrangler secret`) | **No se tocan.** Viven en Cloudflare, no en el repo. |
-| Datos en D1 (conversaciones, leads) | **No se borran.** Solo se aplican migraciones de esquema si las hay. |
-| `.bot-state.json`, `.dev.vars` | Locales y gitignored. **No se tocan.** |
+| Carpeta / archivo                                | Qué pasa al actualizar                                               |
+| ------------------------------------------------ | -------------------------------------------------------------------- |
+| `member/` (config, prompt, base de conocimiento) | **SE CONSERVA SIEMPRE.** Nunca la toques.                            |
+| `src/` (el cerebro del bot)                      | **Se sobrescribe** con la versión nueva del template.                |
+| Secrets de Cloudflare (`wrangler secret`)        | **No se tocan.** Viven en Cloudflare, no en el repo.                 |
+| Datos en D1 (conversaciones, leads)              | **No se borran.** Solo se aplican migraciones de esquema si las hay. |
+| `.bot-state.json`, `.dev.vars`                   | Locales y gitignored. **No se tocan.**                               |
 
 Si en algún momento dudas: **member/ es sagrado, src/ se actualiza.**
 
@@ -35,9 +35,11 @@ la comunidad — no se actualizan por aquí.)
 ## Paso 0 — Pre-flight (chequeos antes de tocar nada)
 
 1. Verifica que estás parado en la carpeta del bot del miembro:
+
    ```bash
    ls package.json wrangler.toml member/
    ```
+
    Si falla: dile "no veo un bot configurado en esta carpeta. Corre `/configurar-mi-chatbot` primero, o muévete a la carpeta donde instalaste tu bot."
 
 2. Lee `.bot-state.json` si existe (te dice qué canales tiene configurados, su slug, etc.). Si no existe, no pasa nada — puedes seguir, solo no asumas configuración previa.
@@ -71,9 +73,11 @@ git fetch upstream main
 ```
 
 Lee la versión que viene en el template nuevo:
+
 ```bash
 git show upstream/main:package.json | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>console.log(JSON.parse(s).version))"
 ```
+
 Guárdala como **VERSIÓN_NUEVA**.
 
 - Si **VERSIÓN_NUEVA === VERSIÓN_ACTUAL** y `git log HEAD..upstream/main --oneline` no muestra commits nuevos:
@@ -89,6 +93,7 @@ git log --oneline --no-merges HEAD..upstream/main
 ```
 
 Resúmelo en lenguaje humano y **muéstraselo ANTES de tocar nada**. Deja clarísimas dos cosas: (1) exactamente QUÉ se va a actualizar, y (2) QUÉ de su bot actual NO se toca. Usa este formato:
+
 ```
 Tu bot pasaría de la versión 0.1.0 → 0.3.0
 
@@ -119,12 +124,15 @@ git status --porcelain src/
 
 - Si **está limpio** → continúa sin avisar.
 - Si **hay cambios** → lista los archivos y avisa:
+
   > "Detecté que estos archivos del cerebro del bot fueron modificados a mano: [lista]. Al actualizar se sobrescriben con la versión oficial. Tu carpeta `member/` NO se toca. ¿Hago un respaldo de esos cambios y continúo, o cancelamos?"
 
   Si dice continuar, respáldalos primero:
+
   ```bash
   git stash push -u -m "backup-pre-update-$(date +%Y%m%d-%H%M%S)" -- src/
   ```
+
   Avísale que el respaldo quedó guardado en `git stash` por si lo necesita.
 
 ## Paso 5 — Aplicar la actualización (preservando member/)
@@ -137,6 +145,7 @@ git merge upstream/main --no-edit -X theirs
 ```
 
 Si el merge marca conflictos en `member/`, **resuélvelos siempre a favor del miembro** (la versión local):
+
 ```bash
 git checkout --ours -- member/
 git add member/
@@ -144,9 +153,11 @@ git commit --no-edit
 ```
 
 > Si prefieres el camino más simple y el miembro NO ha tocado `src/`:
+>
 > ```bash
 > git pull upstream main --no-edit -X theirs
 > ```
+>
 > Igual: ante cualquier conflicto en `member/`, gana la versión local (`--ours`).
 
 Verifica que `member/` siga intacto comparándola contra antes del merge (debe estar sin cambios respecto a lo que el miembro tenía).
@@ -154,17 +165,21 @@ Verifica que `member/` siga intacto comparándola contra antes del merge (debe e
 ## Paso 6 — Reinstalar dependencias si cambiaron
 
 Solo si cambió `package.json` o `pnpm-lock.yaml`:
+
 ```bash
 git diff HEAD@{1} HEAD --name-only | grep -E "package.json|pnpm-lock.yaml" && pnpm install
 ```
+
 Si no cambiaron, te puedes saltar este paso. Si dudas, corre `pnpm install` de todos modos — es seguro.
 
 ## Paso 7 — Aplicar migraciones de base de datos (si las hay)
 
 Si la versión nueva trae cambios en el esquema de la base (`src/db/schema.sql` cambió):
+
 ```bash
 git diff HEAD@{1} HEAD --name-only | grep "src/db/schema.sql" && pnpm db:apply:remote
 ```
+
 Esto **agrega** columnas/tablas nuevas. No borra los datos existentes (conversaciones, leads).
 
 ## Paso 8 — Publicar y sincronizar la base de conocimiento
@@ -175,15 +190,18 @@ sin importar si el cambio fue del miembro (editó su KB) o mío (versión nueva)
 "un solo comando" cubre todo.
 
 **8.1 — Regenera la base de conocimiento (fixtures) desde `member/kb/`:**
+
 ```bash
 pnpm kb:reindex
 ```
+
 Reconstruye el manifiesto de la KB que el deploy va a embarcar. (Si `member/kb/` está
 vacío, no pasa nada: indexará 0 documentos.)
 
 **8.2 — Asegura el token del reindex (`KB_REINDEX_TOKEN`).** El endpoint de reindex
 está protegido por este secret. Como los secrets de Cloudflare **no se pueden leer de
 vuelta**, manéjalo así (auto-cura si nunca se creó en el setup):
+
 ```bash
 # Reusa el token guardado localmente si existe; si no, genera uno y guárdalo en los dos lados.
 if ! grep -q '^KB_REINDEX_TOKEN=' .dev.vars 2>/dev/null; then
@@ -192,22 +210,27 @@ if ! grep -q '^KB_REINDEX_TOKEN=' .dev.vars 2>/dev/null; then
   printf '%s' "$TOKEN" | wrangler secret put KB_REINDEX_TOKEN
 fi
 ```
+
 (Guardarlo en `.dev.vars` —local y gitignored— hace que las próximas actualizaciones
 reutilicen el mismo token sin rotarlo.)
 
 **8.3 — Publica:**
+
 ```bash
 pnpm run deploy
 ```
+
 El deploy embarca los fixtures nuevos (8.1) y el secret (8.2). El `predeploy` escribe
 `.bot-version` solo; no lo toques a mano.
 
 **8.4 — Reindexa en Vectorize** (usa el `worker_url` de `.bot-state.json` y el token de `.dev.vars`):
+
 ```bash
 WORKER_URL=$(node -e "console.log(require('./.bot-state.json').worker_url)" 2>/dev/null)
 TOKEN=$(grep '^KB_REINDEX_TOKEN=' .dev.vars | cut -d= -f2-)
 curl -s -X POST "$WORKER_URL/kb/reindex" -H "X-Reindex-Token: $TOKEN"
 ```
+
 Debe responder `{"ok":true,"indexed":N}`. Si responde `401`, el token del curl no
 coincide con el secret: borra la línea `KB_REINDEX_TOKEN` de `.dev.vars`, repite 8.2
 (genera uno nuevo) y vuelve a 8.3.
@@ -215,9 +238,11 @@ coincide con el secret: borra la línea `KB_REINDEX_TOKEN` de `.dev.vars`, repit
 ## Paso 9 — Verificar que todo quedó bien
 
 Lee `DASHBOARD_BASE_URL` de `wrangler.toml` (o el slug en `.bot-state.json`) y pega `/health`:
+
 ```bash
 curl -s https://horizontes-bot-<SLUG>.workers.dev/health
 ```
+
 Debe responder algo como `{"ok":true}` / `ok`.
 
 - Si responde OK → muéstrale el resumen de cambios del Paso 3 y dile **"Listo, tu bot está actualizado a la versión X. Tu configuración y datos siguen intactos."**
@@ -228,17 +253,21 @@ Debe responder algo como `{"ok":true}` / `ok`.
 Si el deploy falla o `/health` no responde:
 
 1. Regresa el código a como estaba antes del merge:
+
    ```bash
    git reset --hard HEAD@{1}
    ```
+
    (`HEAD@{1}` es el estado justo antes del último merge/pull.)
 
 2. Vuelve a publicar la versión que funcionaba:
+
    ```bash
    pnpm run deploy
    ```
 
 3. Si el miembro tenía cambios respaldados con `git stash`, recupéralos:
+
    ```bash
    git stash list
    git stash pop   # si hay un backup-pre-update

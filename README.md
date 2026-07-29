@@ -25,7 +25,7 @@ Un asistente de soporte con IA que montas **en tu propia infraestructura de Clou
 - 💬 **Multicanal** — WhatsApp, Instagram, Messenger y Telegram desde un mismo cerebro.
 - 📚 **Aprende de tus documentos** — subes tus FAQ, políticas y guías; el bot busca ahí antes de responder (RAG con base vectorial).
 - 🎙️ **Entiende notas de voz** — transcribe los audios de tus clientes automáticamente.
-- 🙋 **Sabe cuándo pedir ayuda** — si algo es delicado o no está seguro, te hace *handoff* a ti.
+- 🙋 **Sabe cuándo pedir ayuda** — si algo es delicado o no está seguro, te hace _handoff_ a ti.
 - 📊 **Panel de administración** — conversaciones, leads, base de conocimiento y métricas, todo en `/admin`.
 - ☁️ **Vive en tu Cloudflare** — rápido, barato y sin servidores que mantener.
 - 🧠 **Tu cerebro, tu llave** — Claude, ChatGPT o Grok; tú eliges y pagas solo lo que piensa.
@@ -52,6 +52,8 @@ npx forjabot init
 
 ### Opción B — manual (si ya programas)
 
+Necesitas Node.js 20 o 22 y pnpm 10.34.5.
+
 ```bash
 git clone https://github.com/santmun/forja mi-chatbot
 cd mi-chatbot
@@ -74,10 +76,10 @@ Tu panel queda en `https://<tu-worker>.workers.dev/admin`.
 
 Forja es **gratis y open source**. Lo único que pagas es tu propia infraestructura, y arranca casi en cero:
 
-| Pieza | Costo | Notas |
-|---|---|---|
-| **Cloudflare** (la casa del bot) | **$0** para empezar · ~$5/mes ya con tráfico real | D1, Vectorize y R2 tienen capa gratis generosa |
-| **Cerebro de IA** (tu llave) | ~**$1–2/mes** para un negocio normal | Pagas solo lo que el bot piensa; tu llave, cifrada en tu Cloudflare |
+| Pieza                            | Costo                                             | Notas                                                               |
+| -------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------- |
+| **Cloudflare** (la casa del bot) | **$0** para empezar · ~$5/mes ya con tráfico real | D1, Vectorize y R2 tienen capa gratis generosa                      |
+| **Cerebro de IA** (tu llave)     | ~**$1–2/mes** para un negocio normal              | Pagas solo lo que el bot piensa; tu llave, cifrada en tu Cloudflare |
 
 Nadie más toca tus datos ni tus conversaciones.
 
@@ -139,11 +141,46 @@ El Starter de este repo sirve para **cualquier negocio**. Si quieres ir más all
 
 Como dueño del negocio, **tú eres el responsable** de esos datos: avisa a tus clientes que la atención es automatizada y que guardas la conversación, y atiende las solicitudes de borrado. Todo el detalle está en [`PRIVACY.md`](./PRIVACY.md).
 
+### Seguridad de medios remotos
+
+Los audios e imágenes solo se aceptan desde hostnames HTTPS exactos. Telegram,
+Twilio y el proxy firmado de WhatsApp usan hosts derivados del propio proveedor
+o de `DASHBOARD_BASE_URL`. ManyChat, adaptadores aprendidos, Messenger e
+Instagram usan CDNs variables y quedan cerrados por defecto hasta configurar la
+variable no secreta `MEDIA_ALLOWED_HOSTS` con una lista de hostnames exactos
+separados por comas.
+
+No uses URLs, puertos, paths, IPs ni comodines en esa lista. Cada hostname amplía
+la superficie de descarga y debe pertenecer a un proveedor administrado por ti.
+La política se vuelve a aplicar en cada redirección y mantiene límites de tiempo
+y tamaño.
+
+Esta allowlist reduce el riesgo de SSRF y DNS rebinding desde payloads
+arbitrarios, pero un dominio permitido que sea comprometido o cambie su DNS
+sigue siendo un riesgo residual. Instalaciones con requisitos estrictos deben
+añadir un egress confiable mediante un Service Binding o proxy que aplique
+políticas de resolución y red.
+
 ---
 
 ## 🤝 Contribuir
 
 Los PRs son bienvenidos. Lee [`CONTRIBUTING.md`](./CONTRIBUTING.md) para el flujo, y abre un issue si tienes una idea o encuentras un bug. Este repo es el **Starter** open source; los giros y comandos de Forja+ viven aparte.
+
+### Calidad y seguridad
+
+El proyecto verifica Node 20 y 22 en CI. Para validar un cambio local sin desplegar:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm check
+pnpm test:coverage
+pnpm security:audit
+```
+
+También están disponibles `pnpm format`, `pnpm lint:fix` y `pnpm check:ci`. La cobertura se
+genera en `coverage/`. Consulta [`SECURITY.md`](./SECURITY.md) para reportar una
+vulnerabilidad de forma privada.
 
 ## 📄 Licencia
 

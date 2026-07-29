@@ -13,7 +13,7 @@ import { layout } from "./layout";
 function esc(s: string): string {
   return s.replace(
     /[&<>"']/g,
-    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]!),
+    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!,
   );
 }
 
@@ -53,7 +53,9 @@ function suggestionCard(s: Suggestion): string {
         <div class="text-[12.5px] leading-relaxed" style="margin-top:8px;background:var(--panel2);border:1px solid var(--line);padding:12px;white-space:pre-wrap">${esc(String(p.content))}</div>
       </details>`;
     }
-  } catch { /* payload preview is best-effort */ }
+  } catch {
+    /* payload preview is best-effort */
+  }
 
   return `
   <div class="card bg-panel border border-line" style="padding:18px">
@@ -91,13 +93,14 @@ export async function renderMejoras(
   ]);
   const copilot = autonomyRaw === "copilot";
 
-  const banner = flash?.found !== undefined
-    ? `<div style="border:1px solid var(--ok);background:rgba(127,183,126,.1);color:var(--ok);padding:10px 14px;font-size:12.5px;margin-bottom:16px">Búsqueda completada: ${esc(flash.found)} ${flash.found === "1" ? "mejora nueva propuesta" : "mejoras nuevas propuestas"}.</div>`
-    : flash?.applied
-      ? `<div style="border:1px solid var(--ok);background:rgba(127,183,126,.1);color:var(--ok);padding:10px 14px;font-size:12.5px;margin-bottom:16px">✓ Mejora aplicada — activa desde el siguiente mensaje.</div>`
-      : flash?.dismissed
-        ? `<div style="border:1px solid var(--line);background:var(--panel2);color:var(--muted);padding:10px 14px;font-size:12.5px;margin-bottom:16px">Descartada. No se volverá a proponer.</div>`
-        : "";
+  const banner =
+    flash?.found !== undefined
+      ? `<div style="border:1px solid var(--ok);background:rgba(127,183,126,.1);color:var(--ok);padding:10px 14px;font-size:12.5px;margin-bottom:16px">Búsqueda completada: ${esc(flash.found)} ${flash.found === "1" ? "mejora nueva propuesta" : "mejoras nuevas propuestas"}.</div>`
+      : flash?.applied
+        ? `<div style="border:1px solid var(--ok);background:rgba(127,183,126,.1);color:var(--ok);padding:10px 14px;font-size:12.5px;margin-bottom:16px">✓ Mejora aplicada — activa desde el siguiente mensaje.</div>`
+        : flash?.dismissed
+          ? `<div style="border:1px solid var(--line);background:var(--panel2);color:var(--muted);padding:10px 14px;font-size:12.5px;margin-bottom:16px">Descartada. No se volverá a proponer.</div>`
+          : "";
 
   const proposedList = proposed.length
     ? proposed.map(suggestionCard).join("")

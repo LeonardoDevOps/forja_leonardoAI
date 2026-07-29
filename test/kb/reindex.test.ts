@@ -54,11 +54,7 @@ describe("reindexKb", () => {
 
     expect(run).toHaveBeenCalledTimes(1);
     expect(run).toHaveBeenCalledWith("@cf/baai/bge-m3", {
-      text: [
-        "Contenido del chunk 0",
-        "Contenido del chunk 1",
-        "Contenido del chunk 2",
-      ],
+      text: ["Contenido del chunk 0", "Contenido del chunk 1", "Contenido del chunk 2"],
     });
 
     expect(upsert).toHaveBeenCalledTimes(1);

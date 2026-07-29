@@ -37,9 +37,7 @@ export class TicketsRepo {
   }
 
   async listOpen(): Promise<Ticket[]> {
-    return this.db.all<Ticket>(
-      "SELECT * FROM tickets WHERE status != 'resolved' ORDER BY created_at DESC",
-    );
+    return this.db.all<Ticket>("SELECT * FROM tickets WHERE status != 'resolved' ORDER BY created_at DESC");
   }
 
   async resolve(id: string, resolvedBy: string): Promise<void> {

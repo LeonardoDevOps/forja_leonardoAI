@@ -25,9 +25,7 @@ interface ChannelStatus {
 function channelStatuses(env: Env): ChannelStatus[] {
   const has = (v?: string) => Boolean(v && v.trim() !== "");
 
-  const telegramMissing = [!has(env.TELEGRAM_BOT_TOKEN) && "TELEGRAM_BOT_TOKEN"].filter(
-    Boolean,
-  ) as string[];
+  const telegramMissing = [!has(env.TELEGRAM_BOT_TOKEN) && "TELEGRAM_BOT_TOKEN"].filter(Boolean) as string[];
   const twilioMissing = [
     !has(env.TWILIO_ACCOUNT_SID) && "TWILIO_ACCOUNT_SID",
     !has(env.TWILIO_AUTH_TOKEN) && "TWILIO_AUTH_TOKEN",
@@ -38,9 +36,7 @@ function channelStatuses(env: Env): ChannelStatus[] {
     !has(env.META_VERIFY_TOKEN) && "META_VERIFY_TOKEN",
     !has(env.META_APP_SECRET) && "META_APP_SECRET",
   ].filter(Boolean) as string[];
-  const manychatMissing = [!has(env.MANYCHAT_API_KEY) && "MANYCHAT_API_KEY"].filter(
-    Boolean,
-  ) as string[];
+  const manychatMissing = [!has(env.MANYCHAT_API_KEY) && "MANYCHAT_API_KEY"].filter(Boolean) as string[];
   const whatsappCloudMissing = [
     !has(env.WHATSAPP_PHONE_NUMBER_ID) && "WHATSAPP_PHONE_NUMBER_ID",
     !has(env.WHATSAPP_ACCESS_TOKEN) && "WHATSAPP_ACCESS_TOKEN",
@@ -71,7 +67,8 @@ function channelStatuses(env: Env): ChannelStatus[] {
         twilioMissing.length === 0 && !has(env.TWILIO_HANDOFF_CONTENT_SID)
           ? "Sin TWILIO_HANDOFF_CONTENT_SID: el aviso de handoff por WhatsApp requiere una plantilla (HSM) aprobada."
           : undefined,
-      howTo: "En Twilio: número WhatsApp aprobado → apunta el webhook de mensajes entrantes a la URL de abajo.",
+      howTo:
+        "En Twilio: número WhatsApp aprobado → apunta el webhook de mensajes entrantes a la URL de abajo.",
     },
     {
       id: "whatsapp-cloud",
@@ -110,7 +107,7 @@ function channelStatuses(env: Env): ChannelStatus[] {
 function esc(s: string): string {
   return s.replace(
     /[&<>"']/g,
-    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]!),
+    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!,
   );
 }
 

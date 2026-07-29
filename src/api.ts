@@ -18,9 +18,7 @@ apiApp.use("*", async (c, next) => {
 });
 
 // GET /api/health → liveness + identity for the control plane.
-apiApp.get("/health", (c) =>
-  c.json({ ok: true, version: BOT_VERSION, tier: c.env.BOT_TIER }, 200),
-);
+apiApp.get("/health", (c) => c.json({ ok: true, version: BOT_VERSION, tier: c.env.BOT_TIER }, 200));
 
 export type MetricsRange = "7d" | "30d" | "all";
 
@@ -66,23 +64,25 @@ export async function computeMetrics(
   const since = sinceForRange(range, now);
 
   const leads =
-    (await db.first<{ n: number }>("SELECT COUNT(*) AS n FROM leads WHERE created_at >= ?", [since]))
-      ?.n ?? 0;
+    (await db.first<{ n: number }>("SELECT COUNT(*) AS n FROM leads WHERE created_at >= ?", [since]))?.n ?? 0;
   const messages =
-    (await db.first<{ n: number }>("SELECT COUNT(*) AS n FROM messages WHERE created_at >= ?", [since]))
-      ?.n ?? 0;
+    (await db.first<{ n: number }>("SELECT COUNT(*) AS n FROM messages WHERE created_at >= ?", [since]))?.n ??
+    0;
   const conversations =
-    (await db.first<{ n: number }>(
-      "SELECT COUNT(*) AS n FROM conversations WHERE last_message_at >= ?",
-      [since],
-    ))?.n ?? 0;
+    (
+      await db.first<{ n: number }>("SELECT COUNT(*) AS n FROM conversations WHERE last_message_at >= ?", [
+        since,
+      ])
+    )?.n ?? 0;
 
   // Distinct conversations that opened a handoff ticket in the window.
   const escalatedRaw =
-    (await db.first<{ n: number }>(
-      "SELECT COUNT(DISTINCT conversation_id) AS n FROM tickets WHERE conversation_id IS NOT NULL AND created_at >= ?",
-      [since],
-    ))?.n ?? 0;
+    (
+      await db.first<{ n: number }>(
+        "SELECT COUNT(DISTINCT conversation_id) AS n FROM tickets WHERE conversation_id IS NOT NULL AND created_at >= ?",
+        [since],
+      )
+    )?.n ?? 0;
 
   const escalated = Math.min(escalatedRaw, conversations);
   const healthScore =

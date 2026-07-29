@@ -27,12 +27,7 @@ import { Db } from "../../src/db/client";
 import { ConversationsRepo } from "../../src/db/conversations";
 import { MessagesRepo } from "../../src/db/messages";
 import { InsightsRepo } from "../../src/db/insights";
-import {
-  analyzeConversations,
-  countPending,
-  parseInsightJson,
-  IDLE_MS,
-} from "../../src/insights/analyzer";
+import { analyzeConversations, countPending, parseInsightJson, IDLE_MS } from "../../src/insights/analyzer";
 import type { Env } from "../../src/env";
 
 let env: Env;
@@ -131,10 +126,10 @@ describe("analyzeConversations", () => {
     await msgs.append(convId, "user", "Sigo sin acceso", { createdAt: later });
     await convs.touchLastMessage(convId, later);
     // Force analyzed_at older than the new last_message_at:
-    await db.run(
-      "UPDATE conversation_insights SET analyzed_at = ? WHERE conversation_id = ?",
-      [later - 5000, convId],
-    );
+    await db.run("UPDATE conversation_insights SET analyzed_at = ? WHERE conversation_id = ?", [
+      later - 5000,
+      convId,
+    ]);
 
     const third = await analyzeConversations(env);
     expect(third.analyzed).toBe(1);

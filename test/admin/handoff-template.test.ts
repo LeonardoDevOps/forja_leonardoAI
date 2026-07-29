@@ -46,18 +46,10 @@ afterEach(() => {
 describe("POST /handoff/template/setup", () => {
   it("crea la plantilla, la somete a aprobación UTILITY y guarda el SID", async () => {
     fetchMock
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ sid: "HXhandoff123" }), { status: 201 }),
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ status: "received" }), { status: 201 }),
-      );
+      .mockResolvedValueOnce(new Response(JSON.stringify({ sid: "HXhandoff123" }), { status: 201 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: "received" }), { status: 201 }));
 
-    const res = await adminApp.request(
-      "/handoff/template/setup",
-      { method: "POST", headers: AUTH },
-      env,
-    );
+    const res = await adminApp.request("/handoff/template/setup", { method: "POST", headers: AUTH }, env);
     expect(res.status).toBe(200);
     const json = (await res.json()) as { sid: string; approval: string; name: string; body: string };
     expect(json.sid).toBe("HXhandoff123");
@@ -79,14 +71,8 @@ describe("POST /handoff/template/setup", () => {
   });
 
   it("propaga errores de la Content API sin guardar nada", async () => {
-    fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ code: 20003 }), { status: 401 }),
-    );
-    const res = await adminApp.request(
-      "/handoff/template/setup",
-      { method: "POST", headers: AUTH },
-      env,
-    );
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ code: 20003 }), { status: 401 }));
+    const res = await adminApp.request("/handoff/template/setup", { method: "POST", headers: AUTH }, env);
     expect(res.status).toBe(502);
     expect(await settings.get(SETTING_KEYS.twilioHandoffContentSid)).toBeNull();
   });

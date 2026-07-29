@@ -25,7 +25,13 @@ describe("dashboard tier gating (nav)", () => {
 
   it("pro: todos los tabs linkean a su vista real, sin badge PRO", () => {
     const html = page("pro");
-    for (const href of ["/admin/insights", "/admin/stats", "/admin/costs", "/admin/mejoras", "/admin/campanas"]) {
+    for (const href of [
+      "/admin/insights",
+      "/admin/stats",
+      "/admin/costs",
+      "/admin/mejoras",
+      "/admin/campanas",
+    ]) {
       expect(html).toContain(`href="${href}"`);
     }
     expect(html).toContain("Panel · Pro");

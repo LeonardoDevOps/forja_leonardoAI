@@ -128,7 +128,9 @@ export async function createBooking(
       }),
     });
     if (!res.ok) return { ok: false, reason: `http_${res.status}` };
-    const body = (await res.json()) as { data?: { id: number | string; uid?: string; status?: string; start?: string } };
+    const body = (await res.json()) as {
+      data?: { id: number | string; uid?: string; status?: string; start?: string };
+    };
     const d = body.data;
     if (!d?.id) return { ok: false, reason: "no_booking_id" };
     return { ok: true, bookingId: d.id, uid: d.uid, status: d.status, start: d.start };

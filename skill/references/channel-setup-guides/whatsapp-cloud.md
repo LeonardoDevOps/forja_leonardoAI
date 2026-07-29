@@ -143,12 +143,12 @@ Solo necesitas una **plantilla aprobada** (Message Template) si quieres que el b
 
 ## Resumen — qué secret es qué
 
-| Secret | De dónde sale | Para qué sirve |
-|---|---|---|
-| `WHATSAPP_PHONE_NUMBER_ID` | API Setup (debajo del número) | Identifica el número desde el que responde el bot |
-| `WHATSAPP_ACCESS_TOKEN` | System User token (business.facebook.com) | Autoriza al bot a enviar y descargar media |
-| `WHATSAPP_VERIFY_TOKEN` | Lo inventas tú | Apretón de manos al registrar el webhook (o reutiliza `META_VERIFY_TOKEN`) |
-| `WHATSAPP_APP_SECRET` | Settings → Basic → App Secret | Valida la firma de los mensajes de Meta (o reutiliza `META_APP_SECRET`) |
+| Secret                     | De dónde sale                             | Para qué sirve                                                             |
+| -------------------------- | ----------------------------------------- | -------------------------------------------------------------------------- |
+| `WHATSAPP_PHONE_NUMBER_ID` | API Setup (debajo del número)             | Identifica el número desde el que responde el bot                          |
+| `WHATSAPP_ACCESS_TOKEN`    | System User token (business.facebook.com) | Autoriza al bot a enviar y descargar media                                 |
+| `WHATSAPP_VERIFY_TOKEN`    | Lo inventas tú                            | Apretón de manos al registrar el webhook (o reutiliza `META_VERIFY_TOKEN`) |
+| `WHATSAPP_APP_SECRET`      | Settings → Basic → App Secret             | Valida la firma de los mensajes de Meta (o reutiliza `META_APP_SECRET`)    |
 
 **Webhook:** `https://TU-WORKER.workers.dev/webhooks/whatsapp` — suscribe el campo **`messages`**.
 

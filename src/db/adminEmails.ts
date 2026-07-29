@@ -10,10 +10,11 @@ export class AdminEmailsRepo {
   constructor(private readonly db: Db) {}
 
   async add(email: string, role: "owner" | "staff" = "owner"): Promise<void> {
-    await this.db.run(
-      "INSERT OR REPLACE INTO admin_emails (email, role, added_at) VALUES (?, ?, ?)",
-      [email.toLowerCase(), role, Date.now()],
-    );
+    await this.db.run("INSERT OR REPLACE INTO admin_emails (email, role, added_at) VALUES (?, ?, ?)", [
+      email.toLowerCase(),
+      role,
+      Date.now(),
+    ]);
   }
 
   async isAuthorized(email: string): Promise<boolean> {

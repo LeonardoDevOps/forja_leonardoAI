@@ -51,9 +51,7 @@ export class LeadsRepo {
     const id = crypto.randomUUID();
     const now = Date.now();
     const metadata =
-      input.metadata && Object.keys(input.metadata).length > 0
-        ? JSON.stringify(input.metadata)
-        : null;
+      input.metadata && Object.keys(input.metadata).length > 0 ? JSON.stringify(input.metadata) : null;
     await this.db.run(
       `INSERT INTO leads (id, conversation_id, name, contact, channel_user_id, intent, notes, metadata, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -75,28 +73,24 @@ export class LeadsRepo {
 
   async list(limit: number, status?: string): Promise<Lead[]> {
     if (status) {
-      return this.db.all<Lead>(
-        "SELECT * FROM leads WHERE status = ? ORDER BY created_at DESC LIMIT ?",
-        [status, limit],
-      );
+      return this.db.all<Lead>("SELECT * FROM leads WHERE status = ? ORDER BY created_at DESC LIMIT ?", [
+        status,
+        limit,
+      ]);
     }
-    return this.db.all<Lead>(
-      "SELECT * FROM leads ORDER BY created_at DESC LIMIT ?",
-      [limit],
-    );
+    return this.db.all<Lead>("SELECT * FROM leads ORDER BY created_at DESC LIMIT ?", [limit]);
   }
 
   async setStatus(id: string, status: Lead["status"]): Promise<void> {
-    await this.db.run(
-      "UPDATE leads SET status = ?, updated_at = ? WHERE id = ?",
-      [status, Date.now(), id],
-    );
+    await this.db.run("UPDATE leads SET status = ?, updated_at = ? WHERE id = ?", [status, Date.now(), id]);
   }
 
   async setExported(id: string, target: string, externalId: string): Promise<void> {
-    await this.db.run(
-      "UPDATE leads SET exported_to = ?, external_id = ?, updated_at = ? WHERE id = ?",
-      [target, externalId, Date.now(), id],
-    );
+    await this.db.run("UPDATE leads SET exported_to = ?, external_id = ?, updated_at = ? WHERE id = ?", [
+      target,
+      externalId,
+      Date.now(),
+      id,
+    ]);
   }
 }

@@ -17,7 +17,7 @@ const money4 = (n: number) => `$${n.toFixed(n < 0.1 ? 4 : 2)}`;
 function esc(s: string): string {
   return s.replace(
     /[&<>"']/g,
-    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]!),
+    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!,
   );
 }
 
@@ -49,14 +49,21 @@ export async function renderCosts(env: Env, saved = false): Promise<string> {
 
   let iaMonth = 0;
   let iaToday = 0;
-  const byModel = new Map<string, { msgs: number; input: number; output: number; cached: number; cost: number }>();
+  const byModel = new Map<
+    string,
+    { msgs: number; input: number; output: number; cached: number; cost: number }
+  >();
   const byDay = new Map<string, number>();
   for (const r of rows) {
     const cost = costOfUsage(r.model_used as ModelId, { input: r.input, output: r.output, cached: r.cached });
     iaMonth += cost;
     if (r.day === todayStr) iaToday += cost;
     const m = byModel.get(r.model_used) ?? { msgs: 0, input: 0, output: 0, cached: 0, cost: 0 };
-    m.msgs += r.msgs; m.input += r.input; m.output += r.output; m.cached += r.cached; m.cost += cost;
+    m.msgs += r.msgs;
+    m.input += r.input;
+    m.output += r.output;
+    m.cached += r.cached;
+    m.cost += cost;
     byModel.set(r.model_used, m);
     byDay.set(r.day, (byDay.get(r.day) ?? 0) + cost);
   }
@@ -80,8 +87,9 @@ export async function renderCosts(env: Env, saved = false): Promise<string> {
         <span class="font-display font-semibold text-[14px]">🎯 Presupuesto mensual de IA</span>
         ${hasBudget && pct >= 100 ? `<span class="text-[9px] px-1.5 py-0.5 border border-bad text-bad">límite alcanzado — el bot bajó al modelo económico</span>` : ""}
       </div>
-      ${hasBudget
-        ? `
+      ${
+        hasBudget
+          ? `
       <div class="flex items-baseline justify-between text-[12.5px] mb-2">
         <span class="text-muted">Gastado este mes: <b class="text-cream">${money(monthToDate)}</b> de ${money(budget)}</span>
         <span class="text-[11px] font-semibold" style="color:${barColor}">${pct}%</span>
@@ -89,7 +97,8 @@ export async function renderCosts(env: Env, saved = false): Promise<string> {
       <div style="height:12px;background:var(--panel2);border:1px solid var(--line);overflow:hidden">
         <div style="width:${pct}%;height:100%;background:${barColor}"></div>
       </div>`
-        : `<p class="text-[12.5px] text-muted mb-2 leading-relaxed">Sin límite configurado. Ponle un tope: al alcanzarlo, el bot sigue contestando pero solo con el modelo económico — nunca se queda callado ni te lleva sorpresas.</p>`}
+          : `<p class="text-[12.5px] text-muted mb-2 leading-relaxed">Sin límite configurado. Ponle un tope: al alcanzarlo, el bot sigue contestando pero solo con el modelo económico — nunca se queda callado ni te lleva sorpresas.</p>`
+      }
       <p class="text-[11px] text-dim mt-2.5 mb-[14px]">Al ritmo actual, terminarás el mes en <b class="text-muted">${money(projected)}</b> de IA.</p>
       <form method="POST" action="/admin/costs/budget" class="flex items-center gap-2 flex-wrap">
         <span class="text-[12px] text-muted">Límite mensual: $</span>
@@ -127,15 +136,19 @@ export async function renderCosts(env: Env, saved = false): Promise<string> {
     </div>`;
 
   // --- Desglose IA por modelo ------------------------------------------------
-  const modelRows = [...byModel.entries()]
-    .sort((a, b) => b[1].cost - a[1].cost)
-    .map(([model, m]) => `
+  const modelRows =
+    [...byModel.entries()]
+      .sort((a, b) => b[1].cost - a[1].cost)
+      .map(
+        ([model, m]) => `
       <tr style="border-top:1px solid var(--line)">
         <td class="py-2 pr-2 text-[11px] text-accent2">${esc(model)}</td>
         <td class="text-right text-cream">${m.msgs}</td>
         <td class="text-right text-dim text-[11px]">${(m.input / 1000).toFixed(0)}k / ${(m.output / 1000).toFixed(0)}k</td>
         <td class="text-right font-semibold text-cream">${money4(m.cost)}</td>
-      </tr>`).join("") ||
+      </tr>`,
+      )
+      .join("") ||
     `<tr><td colspan="4" class="py-3 text-dim text-center text-[12.5px]">Aún no hay uso de IA.</td></tr>`;
 
   const iaCard = `
@@ -149,14 +162,18 @@ export async function renderCosts(env: Env, saved = false): Promise<string> {
 
   // --- Desglose Twilio (real) ------------------------------------------------
   const twRows = tw.available
-    ? (tw.categories.length
-        ? tw.categories.map((c) => `
+    ? tw.categories.length
+      ? tw.categories
+          .map(
+            (c) => `
           <tr style="border-top:1px solid var(--line)">
             <td class="py-2 pr-2 text-cream">${esc(c.label)}</td>
             <td class="text-right text-dim text-[11px]">${esc(String(c.usage))} ${esc(c.unit)}</td>
             <td class="text-right font-semibold text-cream">${money4(c.price)}</td>
-          </tr>`).join("")
-        : `<tr><td colspan="3" class="py-3 text-dim text-center text-[12.5px]">Sin cargos este mes.</td></tr>`)
+          </tr>`,
+          )
+          .join("")
+      : `<tr><td colspan="3" class="py-3 text-dim text-center text-[12.5px]">Sin cargos este mes.</td></tr>`
     : `<tr><td colspan="3" class="py-3 text-dim text-center text-[12.5px]">${esc(tw.error ?? "Twilio no disponible")}</td></tr>`;
 
   const twSubtotal = tw.available
@@ -177,11 +194,15 @@ export async function renderCosts(env: Env, saved = false): Promise<string> {
     </div>`;
 
   // --- Costo IA por día ------------------------------------------------------
-  const dayRows = [...byDay.entries()]
-    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
-    .slice(0, 30)
-    .map(([day, cost]) => `<tr style="border-top:1px solid var(--line)"><td class="py-1.5 text-muted">${esc(day)}</td><td class="text-right text-cream">${money4(cost)}</td></tr>`)
-    .join("") || `<tr><td colspan="2" class="py-3 text-dim text-center text-[12.5px]">Sin datos.</td></tr>`;
+  const dayRows =
+    [...byDay.entries()]
+      .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+      .slice(0, 30)
+      .map(
+        ([day, cost]) =>
+          `<tr style="border-top:1px solid var(--line)"><td class="py-1.5 text-muted">${esc(day)}</td><td class="text-right text-cream">${money4(cost)}</td></tr>`,
+      )
+      .join("") || `<tr><td colspan="2" class="py-3 text-dim text-center text-[12.5px]">Sin datos.</td></tr>`;
 
   const dayCard = `
     <div class="card bg-panel border border-line p-[18px]">

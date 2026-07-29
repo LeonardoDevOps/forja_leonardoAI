@@ -2,7 +2,13 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { createTestMiniflare } from "./helpers/miniflareSetup";
 import { Db } from "../src/db/client";
 import { ConversationsRepo } from "../src/db/conversations";
-import { normalizeForSpam, isRepeatSpam, isOverDailyCap, DAILY_TURN_CAP, DAILY_CAP_MESSAGE } from "../src/spam";
+import {
+  normalizeForSpam,
+  isRepeatSpam,
+  isOverDailyCap,
+  DAILY_TURN_CAP,
+  DAILY_CAP_MESSAGE,
+} from "../src/spam";
 
 let db: Db;
 let convId: string;

@@ -7,15 +7,12 @@ labels: bug
 
 **¿Qué pasó?** (cuéntalo como se lo contarías a un amigo)
 
-
 **¿Qué esperabas que pasara?**
 
-
-**¿Cómo lo reproduzco?** (pasos)
-1.
-2.
+**¿Cómo lo reproduzco?** (pasos) 1. 2.
 
 **Tu setup**
+
 - Canal: (Telegram / WhatsApp / Instagram)
 - Proveedor de IA: (Anthropic / OpenAI)
 - ¿Qué dijo Claude o qué error/mensaje viste? (pega lo que tengas)

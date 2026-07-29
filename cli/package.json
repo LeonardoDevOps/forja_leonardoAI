@@ -18,7 +18,7 @@
     "forjabot": "bin/cli.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20 <25"
   },
   "keywords": [
     "chatbot",

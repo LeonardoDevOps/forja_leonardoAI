@@ -1,9 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import {
-  sendChunkedReply,
-  pickAdapter,
-  chunkDelayMs,
-} from "../../src/replies/sender";
+import { sendChunkedReply, pickAdapter, chunkDelayMs } from "../../src/replies/sender";
 import type { ChannelAdapter } from "../../src/channels/shared";
 
 describe("sendChunkedReply", () => {

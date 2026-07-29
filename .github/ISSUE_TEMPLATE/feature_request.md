@@ -7,8 +7,6 @@ labels: enhancement
 
 **¿Qué te gustaría?**
 
-
 **¿Para qué te serviría?** (qué problema te resuelve)
-
 
 **¿Cómo lo imaginas?** (opcional)

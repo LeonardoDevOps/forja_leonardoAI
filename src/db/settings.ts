@@ -37,10 +37,7 @@ export class SettingsRepo {
   constructor(private readonly db: Db) {}
 
   async get(key: string): Promise<string | null> {
-    const row = await this.db.first<SettingRow>(
-      "SELECT value FROM settings WHERE key = ?",
-      [key],
-    );
+    const row = await this.db.first<SettingRow>("SELECT value FROM settings WHERE key = ?", [key]);
     return row?.value ?? null;
   }
 
@@ -54,9 +51,7 @@ export class SettingsRepo {
   }
 
   async all(): Promise<Record<string, string>> {
-    const rows = await this.db.all<SettingRow>(
-      "SELECT key, value FROM settings",
-    );
+    const rows = await this.db.all<SettingRow>("SELECT key, value FROM settings");
     const out: Record<string, string> = {};
     for (const row of rows) {
       out[row.key] = row.value;

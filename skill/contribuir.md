@@ -9,17 +9,20 @@ Ayudas al usuario a reportar problemas o mandar arreglos al **repo público de F
 el CLI de GitHub. Él NO programa: **tú corres `gh`**. Habla en español claro, sin jerga.
 
 ## PASO 0 — Verifica `gh` (una sola vez)
-1. Corre `gh auth status`. Si NO está logueado, dile: *"Necesito conectar tu GitHub una vez.
-   Escribe `! gh auth login` y sigue los pasos (se abre el navegador)."* Espera a que confirme.
+
+1. Corre `gh auth status`. Si NO está logueado, dile: _"Necesito conectar tu GitHub una vez.
+   Escribe `! gh auth login` y sigue los pasos (se abre el navegador)."_ Espera a que confirme.
 2. El repo oficial es **`santmun/forja`** (público — cualquiera puede abrir issues y PRs).
    Normalmente ya es el `origin` de la carpeta; confírmalo con `git remote -v` y usa ese `owner/repo`.
 
 ## Decide el modo
+
 - Quiere **reportar** algo (bug o idea) → **MODO ISSUE**.
 - Ya hay un **cambio/arreglo** que quiere mandar → **MODO PR**.
-Si no está claro, pregúntale.
+  Si no está claro, pregúntale.
 
 ## MODO ISSUE (reportar)
+
 1. Junta la info: qué pasó, qué esperaba, cómo reproducirlo, y su setup (canal, proveedor de IA,
    el error/mensaje). Si vienen de `/cliente-misterioso`, reusa ese diagnóstico.
 2. **LEE** la plantilla del repo (`.github/ISSUE_TEMPLATE/bug_report.md` para bug, o
@@ -33,6 +36,7 @@ Si no está claro, pregúntale.
 4. Dale al miembro el **link** del issue que imprime `gh`. No inventes el número.
 
 ## MODO PR (mandar un arreglo)
+
 1. **Asegura que el cambio FUNCIONA**: corre `pnpm test` y `pnpm typecheck`. Si algo falla,
    arréglalo o avisa — NUNCA mandes un PR roto. No toques `member/`.
 2. Crea una rama y commitea:
@@ -56,6 +60,7 @@ Si no está claro, pregúntale.
 4. Dale el **link** del PR. Recuérdale: un maintainer lo revisa y lo mergea — **él no mergea**.
 
 ## Reglas (no las rompas)
+
 - **NUNCA** mergees, ni hagas push a `main` del repo oficial. Solo abres issues/PRs.
 - **NUNCA** pongas secrets ni API keys en el issue o PR.
 - Si **tu agente** abrió el PR, recuérdale al miembro **revisar el diff** — es su responsabilidad.

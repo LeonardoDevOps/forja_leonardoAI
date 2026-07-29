@@ -17,12 +17,12 @@ le conviene.
 
 ## Mapa rápido: qué red → qué métodos
 
-| Red del cliente | Métodos posibles | Puerta (webhook) | Llaves que pide |
-|---|---|---|---|
-| **WhatsApp** | Cloud API oficial · Twilio · ManyChat | `/webhooks/whatsapp` · `/webhooks/twilio` · `/webhooks/manychat` | Cloud API: `WHATSAPP_PHONE_NUMBER_ID`+`WHATSAPP_ACCESS_TOKEN`+`WHATSAPP_VERIFY_TOKEN`+`WHATSAPP_APP_SECRET` — Twilio: `TWILIO_ACCOUNT_SID`+`TWILIO_AUTH_TOKEN`+`TWILIO_WA_FROM` — ManyChat: `MANYCHAT_API_KEY` |
-| **Instagram DMs** | Meta oficial · ManyChat | `/webhooks/meta` · `/webhooks/manychat` | Meta: `META_PAGE_ACCESS_TOKEN`+`META_VERIFY_TOKEN`+`META_APP_SECRET` — ManyChat: `MANYCHAT_API_KEY` |
-| **Facebook Messenger** | Meta oficial · ManyChat | `/webhooks/meta` · `/webhooks/manychat` | igual que Instagram Meta oficial |
-| **Telegram** | BotFather (único) | `/webhooks/telegram` | `TELEGRAM_BOT_TOKEN` |
+| Red del cliente        | Métodos posibles                      | Puerta (webhook)                                                 | Llaves que pide                                                                                                                                                                                                |
+| ---------------------- | ------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **WhatsApp**           | Cloud API oficial · Twilio · ManyChat | `/webhooks/whatsapp` · `/webhooks/twilio` · `/webhooks/manychat` | Cloud API: `WHATSAPP_PHONE_NUMBER_ID`+`WHATSAPP_ACCESS_TOKEN`+`WHATSAPP_VERIFY_TOKEN`+`WHATSAPP_APP_SECRET` — Twilio: `TWILIO_ACCOUNT_SID`+`TWILIO_AUTH_TOKEN`+`TWILIO_WA_FROM` — ManyChat: `MANYCHAT_API_KEY` |
+| **Instagram DMs**      | Meta oficial · ManyChat               | `/webhooks/meta` · `/webhooks/manychat`                          | Meta: `META_PAGE_ACCESS_TOKEN`+`META_VERIFY_TOKEN`+`META_APP_SECRET` — ManyChat: `MANYCHAT_API_KEY`                                                                                                            |
+| **Facebook Messenger** | Meta oficial · ManyChat               | `/webhooks/meta` · `/webhooks/manychat`                          | igual que Instagram Meta oficial                                                                                                                                                                               |
+| **Telegram**           | BotFather (único)                     | `/webhooks/telegram`                                             | `TELEGRAM_BOT_TOKEN`                                                                                                                                                                                           |
 
 > **Recomendación de arranque para no técnicos:** empezar por **Telegram** (5 min,
 > gratis, sin verificaciones) para ver el bot vivo de inmediato, y en paralelo
@@ -34,6 +34,7 @@ le conviene.
 ## WhatsApp — Cloud API oficial vs Twilio vs ManyChat
 
 ### Opción A · Twilio (la más rápida para arrancar y probar)
+
 - **Pros:** arranca en minutos con el **sandbox** de Twilio (pruebas sin
   verificación de negocio); API estable y bien documentada; el bot ya trae el
   adaptador nativo (`/webhooks/twilio`); soporta plantillas HSM para el aviso de
@@ -41,17 +42,18 @@ le conviene.
 - **Contras:** cobra **por mensaje** (precio de Meta + margen de Twilio); para
   producción necesitas un **sender aprobado** (tu número propio o uno de Twilio),
   y esa aprobación de WhatsApp puede tardar horas/días; requiere tarjeta.
-- **¿Instalar el Twilio CLI?** *Opcional.* 
-  - *Con CLI* (`brew install twilio/brew/twilio` o `npm i -g twilio-cli`): automatizas
+- **¿Instalar el Twilio CLI?** _Opcional._
+  - _Con CLI_ (`brew install twilio/brew/twilio` o `npm i -g twilio-cli`): automatizas
     crear el sender y registrar el webhook desde la terminal — útil si el miembro
     quiere que TÚ hagas todo. Pro: menos clicks. Contra: una instalación más.
-  - *Sin CLI* (solo dashboard de Twilio, `console.twilio.com`): pegas la URL del
+  - _Sin CLI_ (solo dashboard de Twilio, `console.twilio.com`): pegas la URL del
     webhook a mano en la config del sender. Pro: nada que instalar, más visual
     para no técnicos. **Default recomendado: sin CLI** salvo que el miembro pida
     automatizar.
 - Guía detallada: `twilio-whatsapp.md`.
 
 ### Opción B · ManyChat (WhatsApp visual, sin código)
+
 - **Pros:** todo se arma con clicks en ManyChat; maneja el opt-in y las
   automatizaciones de marketing; un solo `MANYCHAT_API_KEY` para IG/FB/WA.
 - **Contras:** **costo mensual** de ManyChat encima del de WhatsApp; dependes de
@@ -59,6 +61,7 @@ le conviene.
 - Requiere `MANYCHAT_CONTENT_TYPE = "whatsapp"`. Guía: `manychat-webhook.md`.
 
 ### Opción C · WhatsApp Cloud API oficial (directo con Meta, sin intermediario) — mejor margen
+
 - **Pros:** va **directo a Meta**, sin BSP ni markup de Twilio → **la tarifa más
   barata** (mejor margen para revender). Mismo ecosistema Graph que Messenger/IG.
   El bot ya trae el adaptador nativo (`/webhooks/whatsapp`), maneja notas de voz
@@ -78,6 +81,7 @@ le conviene.
 ## Instagram DMs — Meta oficial vs ManyChat
 
 ### Opción A · Meta oficial (recomendada si ya maneja su IG)
+
 - **Pros:** **sin costo de terceros** (solo la API de Meta, gratis para DMs);
   control total; un mismo webhook `/webhooks/meta` te sirve para Instagram **y**
   Messenger a la vez.
@@ -87,6 +91,7 @@ le conviene.
 - Guía detallada: `meta-oficial.md`.
 
 ### Opción B · ManyChat (Instagram visual)
+
 - **Pros:** setup guiado sin código; ideal si el miembro ya usa ManyChat para
   embudos; maneja historias/comentarios→DM con su UI.
 - **Contras:** costo mensual; dependes de ManyChat.
@@ -97,6 +102,7 @@ le conviene.
 ---
 
 ## Facebook Messenger — Meta oficial vs ManyChat
+
 Mismo trade-off que Instagram. **Meta oficial** (gratis, `/webhooks/meta`, pide
 `META_PAGE_ACCESS_TOKEN`) vs **ManyChat** (visual, de pago). Con Meta oficial,
 Messenger e Instagram entran por la **misma app y el mismo webhook** — si el
@@ -105,6 +111,7 @@ miembro quiere las dos, se configuran juntas en `meta-oficial.md`.
 ---
 
 ## Telegram — método único
+
 BotFather. Gratis, sin verificaciones, ~5 min. Es el mejor "primer canal" para
 que el miembro vea el bot funcionando antes de pelear con WhatsApp/Meta. Guía en
 el sub-flujo de `configurar-mi-chatbot.md` (Paso 3.1).
@@ -112,6 +119,7 @@ el sub-flujo de `configurar-mi-chatbot.md` (Paso 3.1).
 ---
 
 ## CLIs que pueden hacer falta (resumen de instalaciones)
+
 - **Cloudflare `wrangler` (obligatorio):** ya lo instalaste/usaste en la FASE 1
   (crea D1/Vectorize/R2, guarda secrets, despliega). Es EL CLI del proyecto.
 - **Twilio CLI (opcional):** solo si eligen WhatsApp por Twilio y quieren
@@ -121,6 +129,7 @@ el sub-flujo de `configurar-mi-chatbot.md` (Paso 3.1).
   `wrangler secret put`.
 
 ## Regla de oro para guardar llaves
+
 **Nunca** pegues tokens/keys en el chat. Cada llave se guarda con
 `wrangler secret put NOMBRE` (entrada oculta). Después de guardar los secrets de
 un canal, corre `wrangler deploy` y pídele al miembro que **recargue

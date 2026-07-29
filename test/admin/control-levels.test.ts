@@ -49,13 +49,7 @@ describe("control-levels data", () => {
 });
 
 describe("valueToLevel / levelToValue round-trips", () => {
-  for (const control of [
-    TONE_CONTROL,
-    SPEED_CONTROL,
-    STYLE_CONTROL,
-    MODEL_CONTROL,
-    STATUS_CONTROL,
-  ]) {
+  for (const control of [TONE_CONTROL, SPEED_CONTROL, STYLE_CONTROL, MODEL_CONTROL, STATUS_CONTROL]) {
     it(`round-trips every option for ${control.key}`, () => {
       for (const opt of control.options) {
         // value -> level -> value

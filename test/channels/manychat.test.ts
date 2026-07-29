@@ -29,11 +29,15 @@ function req(body: unknown): Request {
   return new Request("https://x", { method: "POST", body: JSON.stringify(body) });
 }
 
+const mediaEnv = {
+  MEDIA_ALLOWED_HOSTS: "manychat.cdn,lookaside.fbsbx.com",
+} as unknown as Env;
+
 afterEach(() => vi.restoreAllMocks());
 
 describe("manychatAdapter.parseIncoming", () => {
   it("reads the subscriber from `id` (production contract)", async () => {
-    const msg = await manychatAdapter.parseIncoming(req(sampleText), {} as Env);
+    const msg = await manychatAdapter.parseIncoming(req(sampleText), mediaEnv);
     expect(msg.channel).toBe("manychat");
     expect(msg.channelUserId).toBe("abc123");
     expect(msg.displayName).toBe("María G");
@@ -43,19 +47,19 @@ describe("manychatAdapter.parseIncoming", () => {
   it("falls back to `subscriber_id` if `id` is absent", async () => {
     const msg = await manychatAdapter.parseIncoming(
       req({ subscriber_id: "legacy999", last_input_text: "hey" }),
-      {} as Env,
+      mediaEnv,
     );
     expect(msg.channelUserId).toBe("legacy999");
   });
 
   it("parses audio attachment (and drops the [audio] placeholder text)", async () => {
-    const msg = await manychatAdapter.parseIncoming(req(sampleVoice), {} as Env);
+    const msg = await manychatAdapter.parseIncoming(req(sampleVoice), mediaEnv);
     expect(msg.audioUrl).toBe("https://manychat.cdn/audio.mp3");
     expect(msg.text).toBeUndefined();
   });
 
   it("parses image attachment + caption", async () => {
-    const msg = await manychatAdapter.parseIncoming(req(sampleImage), {} as Env);
+    const msg = await manychatAdapter.parseIncoming(req(sampleImage), mediaEnv);
     expect(msg.imageUrl).toBe("https://manychat.cdn/img.jpg");
     expect(msg.text).toBe("ese corte");
   });
@@ -64,20 +68,14 @@ describe("manychatAdapter.parseIncoming", () => {
   // link del CDN de Meta COMO last_input_text (sin attachments).
   it("routes a lookaside image URL in last_input_text to imageUrl (by extension)", async () => {
     const url = "https://lookaside.fbsbx.com/ig_messaging_cdn/?asset_id=1&signature=x.jpg";
-    const msg = await manychatAdapter.parseIncoming(
-      req({ id: "abc123", last_input_text: url }),
-      {} as Env,
-    );
+    const msg = await manychatAdapter.parseIncoming(req({ id: "abc123", last_input_text: url }), mediaEnv);
     expect(msg.imageUrl).toBe(url);
     expect(msg.text).toBeUndefined();
   });
 
   it("routes an mp4 URL in last_input_text to audioUrl (voice note by extension)", async () => {
     const url = "https://lookaside.fbsbx.com/ig_messaging_cdn/audio_clip.mp4?sig=y";
-    const msg = await manychatAdapter.parseIncoming(
-      req({ id: "abc123", last_input_text: url }),
-      {} as Env,
-    );
+    const msg = await manychatAdapter.parseIncoming(req({ id: "abc123", last_input_text: url }), mediaEnv);
     expect(msg.audioUrl).toBe(url);
     expect(msg.text).toBeUndefined();
   });
@@ -87,10 +85,7 @@ describe("manychatAdapter.parseIncoming", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(null, { status: 200, headers: { "content-type": "image/jpeg" } }),
     );
-    const msg = await manychatAdapter.parseIncoming(
-      req({ id: "abc123", last_input_text: url }),
-      {} as Env,
-    );
+    const msg = await manychatAdapter.parseIncoming(req({ id: "abc123", last_input_text: url }), mediaEnv);
     expect(msg.imageUrl).toBe(url);
     expect(msg.text).toBeUndefined();
   });
@@ -98,7 +93,7 @@ describe("manychatAdapter.parseIncoming", () => {
   it("keeps a normal shared link as plain text (not media)", async () => {
     const msg = await manychatAdapter.parseIncoming(
       req({ id: "abc123", last_input_text: "https://miempresa.com/precios" }),
-      {} as Env,
+      mediaEnv,
     );
     expect(msg.text).toBe("https://miempresa.com/precios");
     expect(msg.imageUrl).toBeUndefined();
@@ -108,23 +103,34 @@ describe("manychatAdapter.parseIncoming", () => {
   it("keeps text that merely contains a URL as text", async () => {
     const msg = await manychatAdapter.parseIncoming(
       req({ id: "abc123", last_input_text: "mira esto https://lookaside.fbsbx.com/x.jpg te late?" }),
-      {} as Env,
+      mediaEnv,
     );
     expect(msg.text).toContain("mira esto");
     expect(msg.imageUrl).toBeUndefined();
+  });
+
+  it("drops media from a public host until the operator approves it", async () => {
+    const msg = await manychatAdapter.parseIncoming(req(sampleImage), {} as Env);
+    expect(msg.imageUrl).toBeUndefined();
+    expect(msg.text).toBe("ese corte");
+  });
+
+  it("does not probe an unapproved URL without an extension", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const url = "https://attacker.example/media?id=1";
+    const msg = await manychatAdapter.parseIncoming(req({ id: "abc123", last_input_text: url }), mediaEnv);
+    expect(msg.text).toBe(url);
+    expect(msg.imageUrl).toBeUndefined();
+    expect(msg.audioUrl).toBeUndefined();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
 
 describe("manychatAdapter.sendReply", () => {
   it("sends via sendContent with content.type matching the channel (instagram default)", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response("{}", { status: 200 }));
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 200 }));
     const env = { MANYCHAT_API_KEY: "key" } as unknown as Env;
-    await manychatAdapter.sendReply(
-      { channel: "manychat", channelUserId: "abc123", chunks: ["hola"] },
-      env,
-    );
+    await manychatAdapter.sendReply({ channel: "manychat", channelUserId: "abc123", chunks: ["hola"] }, env);
     const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://api.manychat.com/fb/sending/sendContent");
     const body = JSON.parse(String(init.body));
@@ -134,17 +140,12 @@ describe("manychatAdapter.sendReply", () => {
   });
 
   it("honors MANYCHAT_CONTENT_TYPE override (e.g. whatsapp)", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response("{}", { status: 200 }));
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 200 }));
     const env = {
       MANYCHAT_API_KEY: "key",
       MANYCHAT_CONTENT_TYPE: "whatsapp",
     } as unknown as Env;
-    await manychatAdapter.sendReply(
-      { channel: "manychat", channelUserId: "abc123", chunks: ["hi"] },
-      env,
-    );
+    await manychatAdapter.sendReply({ channel: "manychat", channelUserId: "abc123", chunks: ["hi"] }, env);
     const body = JSON.parse(String((fetchSpy.mock.calls[0][1] as RequestInit).body));
     expect(body.data.content.type).toBe("whatsapp");
   });

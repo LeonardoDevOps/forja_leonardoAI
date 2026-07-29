@@ -1,25 +1,25 @@
 // USD per million tokens. Update when providers adjust pricing.
 export const PRICING = {
   haiku: {
-    input: 0.80,
+    input: 0.8,
     cacheRead: 0.08,
-    output: 4.00,
+    output: 4.0,
   },
   sonnet: {
-    input: 3.00,
-    cacheRead: 0.30,
-    output: 15.00,
+    input: 3.0,
+    cacheRead: 0.3,
+    output: 15.0,
   },
   // OpenAI alternative (defaults mapped in src/llm/provider.ts).
   "gpt-4o-mini": {
     input: 0.15,
     cacheRead: 0.075,
-    output: 0.60,
+    output: 0.6,
   },
   "gpt-4o": {
-    input: 2.50,
+    input: 2.5,
     cacheRead: 1.25,
-    output: 10.00,
+    output: 10.0,
   },
 } as const;
 

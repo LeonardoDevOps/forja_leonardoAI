@@ -44,7 +44,12 @@ describe("parseWhatsAppEvents", () => {
   it("parsea imagen con caption a una URL de media firmada", async () => {
     const out = await parseWhatsAppEvents(
       body([
-        { from: "5215512345678", id: "wamid.2", type: "image", image: { id: "MEDIA_IMG", caption: "ese corte" } },
+        {
+          from: "5215512345678",
+          id: "wamid.2",
+          type: "image",
+          image: { id: "MEDIA_IMG", caption: "ese corte" },
+        },
       ]) as any,
       env,
       ORIGIN,
@@ -57,7 +62,9 @@ describe("parseWhatsAppEvents", () => {
 
   it("parsea nota de voz (type audio)", async () => {
     const out = await parseWhatsAppEvents(
-      body([{ from: "5215512345678", id: "wamid.3", type: "audio", audio: { id: "MEDIA_AUD", voice: true } }]) as any,
+      body([
+        { from: "5215512345678", id: "wamid.3", type: "audio", audio: { id: "MEDIA_AUD", voice: true } },
+      ]) as any,
       env,
       ORIGIN,
     );
@@ -68,7 +75,12 @@ describe("parseWhatsAppEvents", () => {
   it("ignora los recibos de entrega/lectura (statuses)", async () => {
     const b = {
       object: "whatsapp_business_account",
-      entry: [{ id: "WABA", changes: [{ field: "messages", value: { statuses: [{ id: "wamid.x", status: "delivered" }] } }] }],
+      entry: [
+        {
+          id: "WABA",
+          changes: [{ field: "messages", value: { statuses: [{ id: "wamid.x", status: "delivered" }] } }],
+        },
+      ],
     };
     const out = await parseWhatsAppEvents(b as any, env, ORIGIN);
     expect(out).toHaveLength(0);

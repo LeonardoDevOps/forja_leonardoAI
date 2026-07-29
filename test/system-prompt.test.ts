@@ -1,9 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  renderSystemPrompt,
-  systemPromptFromEnv,
-  type SystemPromptInput,
-} from "../src/system-prompt";
+import { renderSystemPrompt, systemPromptFromEnv, type SystemPromptInput } from "../src/system-prompt";
 
 const input: SystemPromptInput = {
   botName: "Asistente",

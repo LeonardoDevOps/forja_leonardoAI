@@ -4,7 +4,8 @@ import { systemPromptFromEnv } from "../src/system-prompt";
 import { layout } from "../src/admin/views/layout";
 import type { Env } from "../src/env";
 
-const envWith = (niche?: string) => ({ BOT_NICHE: niche, BOT_NAME: "Bot", BUSINESS_NAME: "Neg", BOT_LANGUAGE: "es-MX" }) as unknown as Env;
+const envWith = (niche?: string) =>
+  ({ BOT_NICHE: niche, BOT_NAME: "Bot", BUSINESS_NAME: "Neg", BOT_LANGUAGE: "es-MX" }) as unknown as Env;
 
 describe("getNiche", () => {
   it("nicho ausente o desconocido → genérico (comportamiento del Starter)", () => {

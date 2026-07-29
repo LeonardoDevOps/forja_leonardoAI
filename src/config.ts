@@ -11,10 +11,7 @@ export function isPro(env: Env): boolean {
 // Tools reservadas al tier Pro. captureLead NO está aquí a propósito: el bot
 // Starter (free) captura leads — es su valor central. Lo Pro son las tools más
 // avanzadas por nicho (agendar citas, consultar catálogo/inventario).
-export const PRO_ONLY_TOOLS = [
-  "scheduleAppointment",
-  "catalogQuery",
-] as const;
+export const PRO_ONLY_TOOLS = ["scheduleAppointment", "catalogQuery"] as const;
 
 // Tabs del dashboard reservadas al tier Pro (Análisis + growth). El tier free
 // ve un panel funcional (Resumen, Conversaciones, Leads, Tickets, Flujo, KB,

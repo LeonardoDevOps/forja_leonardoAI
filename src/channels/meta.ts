@@ -44,12 +44,15 @@ export function parseMetaEvents(body: MetaWebhookBody): IncomingMessage[] {
       const m = ev.message;
       // Log SIN datos personales: nunca el texto del cliente ni su id completo
       // (los últimos 4 dígitos bastan para correlacionar un evento en los logs).
-      console.log("meta in:", JSON.stringify({
-        ch: channel,
-        sender: ev.sender?.id ? `…${String(ev.sender.id).slice(-4)}` : undefined,
-        echo: m?.is_echo,
-        kind: m?.text ? "text" : m?.attachments?.[0]?.type ?? "other",
-      }));
+      console.log(
+        "meta in:",
+        JSON.stringify({
+          ch: channel,
+          sender: ev.sender?.id ? `…${String(ev.sender.id).slice(-4)}` : undefined,
+          echo: m?.is_echo,
+          kind: m?.text ? "text" : (m?.attachments?.[0]?.type ?? "other"),
+        }),
+      );
       if (!m || m.is_echo) continue; // ignora echoes
       if (m.quick_reply) continue; // tap de botón (quick reply), no es texto para el LLM
       const sender = ev.sender?.id;
@@ -147,7 +150,7 @@ export const metaAdapter: ChannelAdapter = {
     const url = `${base}/${GRAPH_VERSION}/${node}/messages`;
     console.log("meta out:", JSON.stringify({ useIG, node, to: reply.channelUserId }));
     for (let i = 0; i < reply.chunks.length; i++) {
-      const delay = i === 0 ? 0 : reply.interChunkDelayMs ?? 1000;
+      const delay = i === 0 ? 0 : (reply.interChunkDelayMs ?? 1000);
       if (delay > 0) await new Promise((r) => setTimeout(r, delay));
       const payload: Record<string, unknown> = {
         recipient: { id: reply.channelUserId },

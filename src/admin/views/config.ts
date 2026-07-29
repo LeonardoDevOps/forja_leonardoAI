@@ -7,18 +7,14 @@ import type { Env } from "../../env";
 import { SETTING_KEYS } from "../../db/settings";
 import { renderBusinessContext } from "../../businessContext";
 import { CURATED_MODELS } from "../../llm/provider";
-import {
-  CONTROL_LIST,
-  valueToLevel,
-  type ControlDef,
-} from "../control-levels";
+import { CONTROL_LIST, valueToLevel, type ControlDef } from "../control-levels";
 import { layout } from "./layout";
 
 /** Escape untrusted text before interpolating it into an HTML attribute/body. */
 function esc(s: string): string {
   return s.replace(
     /[&<>"']/g,
-    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]!),
+    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!,
   );
 }
 
@@ -219,7 +215,8 @@ export function renderConfig(
           // onboarding cargó en member/config.local (renderBusinessContext) para
           // que el miembro VEA y edite sus horarios aquí desde el día 1.
           value: settings[SETTING_KEYS.businessContext] || renderBusinessContext(),
-          placeholder: "Ej. Abrimos lunes a sábado de 9 a 7. Corte $150, barba $100. Estamos en Av. Reforma 123.",
+          placeholder:
+            "Ej. Abrimos lunes a sábado de 9 a 7. Corte $150, barba $100. Estamos en Av. Reforma 123.",
           rows: 6,
         })}
 

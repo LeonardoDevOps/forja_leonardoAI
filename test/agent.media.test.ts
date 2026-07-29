@@ -13,6 +13,13 @@ vi.mock("agents", () => ({
     ctx: any;
     env: any;
     state: any;
+    schedules: Array<{
+      id: string;
+      callback: string;
+      payload: unknown;
+      type: "delayed";
+      time: number;
+    }> = [];
     constructor(ctx: any, env: any) {
       this.ctx = ctx;
       this.env = env;
@@ -20,10 +27,26 @@ vi.mock("agents", () => ({
     setState(s: any) {
       this.state = s;
     }
-    // Tagged-template stub: ingest() upserts into cf_agents_schedules via this.sql
-    sql(..._args: any[]) {
-      return undefined;
-    }
+    getSchedules = vi.fn((criteria?: { type?: string }) =>
+      this.schedules.filter((schedule) => !criteria?.type || schedule.type === criteria.type),
+    );
+    cancelSchedule = vi.fn(async (id: string) => {
+      const index = this.schedules.findIndex((schedule) => schedule.id === id);
+      if (index === -1) return false;
+      this.schedules.splice(index, 1);
+      return true;
+    });
+    schedule = vi.fn(async (when: number, callback: string, payload: unknown) => {
+      const scheduled = {
+        id: `schedule-${this.schedules.length + 1}`,
+        callback,
+        payload,
+        type: "delayed" as const,
+        time: Math.floor(Date.now() / 1000) + when,
+      };
+      this.schedules.push(scheduled);
+      return scheduled;
+    });
   },
 }));
 
@@ -112,9 +135,7 @@ function stubConversations(opts?: { paused?: boolean }) {
     id: "conv-1",
     paused_until: null,
   } as any);
-  vi.spyOn(ConversationsRepo.prototype, "isPaused").mockResolvedValue(
-    opts?.paused ?? false,
-  );
+  vi.spyOn(ConversationsRepo.prototype, "isPaused").mockResolvedValue(opts?.paused ?? false);
 }
 
 describe("SupportAgent.ingest — media (Task 6.3)", () => {
@@ -126,9 +147,7 @@ describe("SupportAgent.ingest — media (Task 6.3)", () => {
     originalFetch = globalThis.fetch;
     // Audio download is stubbed: transcribeAudio fetches the audioUrl then
     // hands bytes to env.AI.run — neither touches the real network.
-    globalThis.fetch = vi.fn(
-      async () => new Response(new Uint8Array([1, 2, 3])),
-    ) as any;
+    globalThis.fetch = vi.fn(async () => new Response(new Uint8Array([1, 2, 3]))) as any;
   });
 
   afterEach(() => {
@@ -143,7 +162,7 @@ describe("SupportAgent.ingest — media (Task 6.3)", () => {
     await agent.ingest({
       channel: "telegram",
       channelUserId: "u1",
-      audioUrl: "https://example.com/voice.ogg",
+      audioUrl: "https://api.telegram.org/file/bottest/voice.ogg",
     });
 
     expect(agent.env.AI.run).toHaveBeenCalled();
@@ -160,12 +179,25 @@ describe("SupportAgent.ingest — media (Task 6.3)", () => {
     await agent.ingest({
       channel: "telegram",
       channelUserId: "u1",
-      audioUrl: "https://example.com/voice.ogg",
+      audioUrl: "https://api.telegram.org/file/bottest/voice.ogg",
     });
 
-    expect(agent.state.pendingMessages[0].text).toBe(
-      "(no pude entender el audio)",
-    );
+    expect(agent.state.pendingMessages[0].text).toBe("(no pude entender el audio)");
+  });
+
+  it("rejects an unapproved audio host without fetching or calling Workers AI", async () => {
+    const { agent } = makeAgent();
+    stubConversations();
+
+    await agent.ingest({
+      channel: "telegram",
+      channelUserId: "u1",
+      audioUrl: "https://attacker.example/voice.ogg?signature=sensitive",
+    });
+
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(agent.env.AI.run).not.toHaveBeenCalled();
+    expect(agent.state.pendingMessages[0].text).toBe("(no pude entender el audio)");
   });
 
   it("free tier: strips the image and informs the bot it's unsupported", async () => {
@@ -176,7 +208,7 @@ describe("SupportAgent.ingest — media (Task 6.3)", () => {
       channel: "telegram",
       channelUserId: "u1",
       text: "mira esto",
-      imageUrl: "https://example.com/pic.png",
+      imageUrl: "https://api.telegram.org/file/bottest/pic.png",
     });
 
     const buffered = agent.state.pendingMessages[0].text;
@@ -193,13 +225,30 @@ describe("SupportAgent.ingest — media (Task 6.3)", () => {
       channel: "telegram",
       channelUserId: "u1",
       text: "describe esta foto",
-      imageUrl: "https://example.com/pic.png",
+      imageUrl: "https://api.telegram.org/file/bottest/pic.png",
     });
 
     const buffered = agent.state.pendingMessages[0].text;
     expect(buffered).toContain("describe esta foto");
-    expect(buffered).toContain("[IMAGE_URL: https://example.com/pic.png]");
+    expect(buffered).toContain("[IMAGE_URL: https://api.telegram.org/file/bottest/pic.png]");
     expect(agent.state.imageRetryCount).toBe(0);
+  });
+
+  it("pro tier: rejects an unapproved public image host without persisting its URL", async () => {
+    const { agent } = makeAgent({ tier: "pro" });
+    stubConversations();
+
+    await agent.ingest({
+      channel: "telegram",
+      channelUserId: "u1",
+      text: "describe esta foto",
+      imageUrl: "https://attacker.example/pic.png?signature=sensitive",
+    });
+
+    const buffered = agent.state.pendingMessages[0].text;
+    expect(buffered).toContain("No pude procesar la imagen");
+    expect(buffered).not.toContain("attacker.example");
+    expect(buffered).not.toContain("IMAGE_URL");
   });
 });
 
@@ -220,25 +269,19 @@ describe("SupportAgent.alarm — multimodal last message (Task 6.3)", () => {
     streamTextMock.mockReset();
     streamTextMock.mockImplementation(() => makeStreamResult("ok"));
 
-    vi.spyOn(MessagesRepo.prototype, "append").mockResolvedValue(
-      undefined as any,
-    );
+    vi.spyOn(MessagesRepo.prototype, "append").mockResolvedValue(undefined as any);
     vi.spyOn(MessagesRepo.prototype, "lastN").mockResolvedValue([
       { role: "user", content: "mensaje previo" },
       { role: "assistant", content: "respuesta previa" },
       { role: "user", content: opts.lastContent },
     ] as any);
-    vi.spyOn(ConversationsRepo.prototype, "touchLastMessage").mockResolvedValue(
-      undefined as any,
-    );
+    vi.spyOn(ConversationsRepo.prototype, "touchLastMessage").mockResolvedValue(undefined as any);
     vi.spyOn(senderMod, "pickAdapter").mockReturnValue({
       sendReply: vi.fn(async () => {}),
     } as any);
 
     // Seed buffer so alarm processes
-    agent.state.pendingMessages = [
-      { text: opts.lastContent, receivedAt: Date.now() },
-    ];
+    agent.state.pendingMessages = [{ text: opts.lastContent, receivedAt: Date.now() }];
 
     await agent.processBuffer();
     return streamTextMock.mock.calls[0][0].messages;
@@ -247,13 +290,16 @@ describe("SupportAgent.alarm — multimodal last message (Task 6.3)", () => {
   it("pro tier: builds a multimodal message from the [IMAGE_URL] marker", async () => {
     const messages = await runAlarm({
       tier: "pro",
-      lastContent: "describe esto\n[IMAGE_URL: https://example.com/pic.png]",
+      lastContent: "describe esto\n[IMAGE_URL: https://api.telegram.org/file/bottest/pic.png]",
     });
 
     const last = messages[messages.length - 1];
     expect(Array.isArray(last.content)).toBe(true);
     expect(last.content).toEqual([
-      { type: "image", image: new URL("https://example.com/pic.png") },
+      {
+        type: "image",
+        image: new URL("https://api.telegram.org/file/bottest/pic.png"),
+      },
       { type: "text", text: "describe esto" },
     ]);
   });
@@ -274,15 +320,9 @@ describe("SupportAgent.alarm — multimodal last message (Task 6.3)", () => {
     streamTextMock.mockReset();
     streamTextMock.mockImplementation(() => makeStreamResult("ok"));
 
-    vi.spyOn(MessagesRepo.prototype, "append").mockResolvedValue(
-      undefined as any,
-    );
-    vi.spyOn(MessagesRepo.prototype, "lastN").mockResolvedValue([
-      { role: "user", content: "hola" },
-    ] as any);
-    vi.spyOn(ConversationsRepo.prototype, "touchLastMessage").mockResolvedValue(
-      undefined as any,
-    );
+    vi.spyOn(MessagesRepo.prototype, "append").mockResolvedValue(undefined as any);
+    vi.spyOn(MessagesRepo.prototype, "lastN").mockResolvedValue([{ role: "user", content: "hola" }] as any);
+    vi.spyOn(ConversationsRepo.prototype, "touchLastMessage").mockResolvedValue(undefined as any);
     vi.spyOn(senderMod, "pickAdapter").mockReturnValue({
       sendReply: vi.fn(async () => {}),
     } as any);
@@ -307,15 +347,9 @@ describe("SupportAgent.alarm — multimodal last message (Task 6.3)", () => {
     streamTextMock.mockReset();
     streamTextMock.mockImplementation(() => makeStreamResult("ok"));
 
-    vi.spyOn(MessagesRepo.prototype, "append").mockResolvedValue(
-      undefined as any,
-    );
-    vi.spyOn(MessagesRepo.prototype, "lastN").mockResolvedValue([
-      { role: "user", content: "hola" },
-    ] as any);
-    vi.spyOn(ConversationsRepo.prototype, "touchLastMessage").mockResolvedValue(
-      undefined as any,
-    );
+    vi.spyOn(MessagesRepo.prototype, "append").mockResolvedValue(undefined as any);
+    vi.spyOn(MessagesRepo.prototype, "lastN").mockResolvedValue([{ role: "user", content: "hola" }] as any);
+    vi.spyOn(ConversationsRepo.prototype, "touchLastMessage").mockResolvedValue(undefined as any);
     vi.spyOn(senderMod, "pickAdapter").mockReturnValue({
       sendReply: vi.fn(async () => {}),
     } as any);
@@ -343,7 +377,7 @@ describe("SupportAgent.ingest — bot_paused (settings)", () => {
 
   it("buffers the client message but does NOT arm the alarm when bot_paused=1", async () => {
     stubSettings({ bot_paused: "1" });
-    const { agent, storage } = makeAgent({ tier: "free" });
+    const { agent } = makeAgent({ tier: "free" });
     stubConversations();
 
     await agent.ingest({
@@ -355,14 +389,17 @@ describe("SupportAgent.ingest — bot_paused (settings)", () => {
     // Message is persisted in the buffer …
     expect(agent.state.pendingMessages).toHaveLength(1);
     expect(agent.state.pendingMessages[0].text).toBe("hola, estoy pausado?");
-    // … but the bot stays silent: no alarm scheduled.
-    expect(storage.setAlarm).not.toHaveBeenCalled();
+    // … but the bot stays silent: the scheduler is never consulted.
+    expect(agent.getSchedules).not.toHaveBeenCalled();
+    expect(agent.cancelSchedule).not.toHaveBeenCalled();
+    expect(agent.schedule).not.toHaveBeenCalled();
   });
 
-  it("arms the alarm when bot is not paused", async () => {
+  it("schedules processBuffer with the configured delay when the bot is active", async () => {
     stubSettings();
-    const { agent, storage } = makeAgent({ tier: "free" });
+    const { agent } = makeAgent({ tier: "free" });
     stubConversations();
+    const before = Date.now();
 
     await agent.ingest({
       channel: "telegram",
@@ -370,6 +407,55 @@ describe("SupportAgent.ingest — bot_paused (settings)", () => {
       text: "hola",
     });
 
-    expect(storage.setAlarm).toHaveBeenCalledTimes(1);
+    expect(agent.getSchedules).toHaveBeenCalledWith({ type: "delayed" });
+    expect(agent.cancelSchedule).not.toHaveBeenCalled();
+    expect(agent.schedule).toHaveBeenCalledWith(8, "processBuffer", {});
+    expect(agent.state.lastAlarmAt).toBeGreaterThanOrEqual(before + 8_000);
+    expect(agent.state.lastAlarmAt).toBeLessThanOrEqual(Date.now() + 8_000);
+  });
+
+  it("cancels every stale processBuffer schedule but preserves other callbacks", async () => {
+    stubSettings();
+    const { agent } = makeAgent({ tier: "free" });
+    stubConversations();
+    agent.schedules.push(
+      {
+        id: "old-buffer-1",
+        callback: "processBuffer",
+        payload: {},
+        type: "delayed",
+        time: 1,
+      },
+      {
+        id: "other-task",
+        callback: "someOtherCallback",
+        payload: {},
+        type: "delayed",
+        time: 2,
+      },
+      {
+        id: "old-buffer-2",
+        callback: "processBuffer",
+        payload: {},
+        type: "delayed",
+        time: 3,
+      },
+    );
+
+    await agent.ingest({
+      channel: "telegram",
+      channelUserId: "u1",
+      text: "reinicia el debounce",
+    });
+
+    expect(agent.cancelSchedule.mock.calls.map(([id]: [string]) => id)).toEqual([
+      "old-buffer-1",
+      "old-buffer-2",
+    ]);
+    expect(agent.schedules.some((schedule: { id: string }) => schedule.id === "other-task")).toBe(true);
+    expect(
+      agent.schedules.filter((schedule: { callback: string }) => schedule.callback === "processBuffer"),
+    ).toHaveLength(1);
+    expect(agent.schedule).toHaveBeenCalledTimes(1);
   });
 });

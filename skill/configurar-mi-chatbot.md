@@ -31,6 +31,7 @@ Guarda un checkpoint en `.bot-setup.json` después de **cada paso**. El formato 
 ```
 
 Al arrancar, si ese archivo ya existe, pregunta:
+
 > "Veo que ya empezaste la instalación (vas en la Fase N, paso X). ¿Reanudamos desde ahí o empezamos de cero?"
 
 Si dice "de cero", borra `.bot-setup.json` y arranca desde la Fase 1.
@@ -38,6 +39,7 @@ Si dice "de cero", borra `.bot-setup.json` y arranca desde la Fase 1.
 ## Detección de bot existente (multi-bot)
 
 Si encuentras `.bot-state.json` (se crea al final de un setup exitoso), significa que ya hay un bot armado. Pregunta:
+
 > "Ya tienes un bot configurado. ¿Quieres armar un bot **nuevo** para otro negocio, o **actualizar** el que ya tienes?"
 
 - Si dice **"actualizar"** → dile que corra `/actualizar-mi-bot` y termina aquí.
@@ -49,12 +51,12 @@ Si encuentras `.bot-state.json` (se crea al final de un setup exitoso), signific
 
 Avanza en orden. Después de cada paso, actualiza `.bot-setup.json`.
 
-| Fase | Qué logra | Tiempo |
-|---|---|---|
-| **1 — TU PLATAFORMA** | Cloudflare listo, bot desplegado, dashboard vivo en tu navegador | ~10 min |
-| **2 — TU CHATBOT** | Negocio, tareas, idioma y conocimiento — y lo ves en tu panel | ~10 min |
-| **3 — TUS CONEXIONES** | Canales y avisos al dueño — cada uno se pone verde en el panel | ~10 min |
-| **4 — PRUEBA FINAL** | Mensaje real, panel sin rojos, estado guardado | ~5 min |
+| Fase                   | Qué logra                                                        | Tiempo  |
+| ---------------------- | ---------------------------------------------------------------- | ------- |
+| **1 — TU PLATAFORMA**  | Cloudflare listo, bot desplegado, dashboard vivo en tu navegador | ~10 min |
+| **2 — TU CHATBOT**     | Negocio, tareas, idioma y conocimiento — y lo ves en tu panel    | ~10 min |
+| **3 — TUS CONEXIONES** | Canales y avisos al dueño — cada uno se pone verde en el panel   | ~10 min |
+| **4 — PRUEBA FINAL**   | Mensaje real, panel sin rojos, estado guardado                   | ~5 min  |
 
 ---
 
@@ -81,6 +83,7 @@ pero cubre TODOS los puntos):
 > en ningún otro lado.
 >
 > **Voy a ocupar dos cosas de ti ahorita, y una más al final:**
+>
 > 1. Una cuenta de Cloudflare (gratis) — la casa del bot.
 > 2. Una cuenta en tu proveedor de IA, con su llave — el cerebro.
 > 3. Y al final, el acceso del canal donde vas a atender (Telegram, WhatsApp…) — la puerta.
@@ -97,8 +100,8 @@ pero cubre TODOS los puntos):
 > pidas algo nuevo. ¿Le entramos?"
 
 **Ofrécele el diagrama**: este repo trae `como-funciona.html` — un mapa visual de todo
-esto (las 3 piezas, el viaje de un mensaje, el panel y lo de los tokens). Dile: *"si
-quieres verlo en un diagrama, te lo abro"* y, si acepta, córrelo: `open como-funciona.html`
+esto (las 3 piezas, el viaje de un mensaje, el panel y lo de los tokens). Dile: _"si
+quieres verlo en un diagrama, te lo abro"_ y, si acepta, córrelo: `open como-funciona.html`
 (macOS) / `xdg-open como-funciona.html` (Linux) / `start como-funciona.html` (Windows).
 **No generes un diagrama nuevo cada vez — usa este archivo.**
 
@@ -154,10 +157,11 @@ pnpm db:apply:remote
 
 Antes de guardar la llave, pregúntale al miembro qué proveedor quiere usar. Preséntale los dos con sus pros y contras (precio vs potencia) y dile que **lo puede cambiar después** sin reinstalar:
 
-- **Anthropic (Claude)** — *recomendado por default.* La opción más potente y precisa para atención al cliente. Usa el modelo económico (Haiku) por defecto y sube a uno más potente (Sonnet) solo cuando la conversación lo amerita. Cuesta un poco más por mensaje, pero la calidad es la mejor. Llave en `https://console.anthropic.com/api-keys`.
-- **OpenAI (GPT)** — la alternativa *más económica*. Usa `gpt-4o-mini` por defecto (muy barato) y sube a `gpt-4o` cuando hace falta. Ideal si ya tiene saldo en OpenAI o quiere el costo más bajo; la calidad es muy buena, aunque en casos difíciles Claude suele responder mejor. Llave en `https://platform.openai.com/api-keys`.
+- **Anthropic (Claude)** — _recomendado por default._ La opción más potente y precisa para atención al cliente. Usa el modelo económico (Haiku) por defecto y sube a uno más potente (Sonnet) solo cuando la conversación lo amerita. Cuesta un poco más por mensaje, pero la calidad es la mejor. Llave en `https://console.anthropic.com/api-keys`.
+- **OpenAI (GPT)** — la alternativa _más económica_. Usa `gpt-4o-mini` por defecto (muy barato) y sube a `gpt-4o` cuando hace falta. Ideal si ya tiene saldo en OpenAI o quiere el costo más bajo; la calidad es muy buena, aunque en casos difíciles Claude suele responder mejor. Llave en `https://platform.openai.com/api-keys`.
 
 Resumen para decirle:
+
 - **Quiero la mejor calidad / es lo recomendado → Anthropic.**
 - **Quiero el costo más bajo / ya uso OpenAI → OpenAI.**
 - En ambos, la **voz** (notas de audio), la **memoria** (KB) y la **visión** siguen corriendo en Cloudflare; el proveedor solo cambia el "cerebro" que redacta las respuestas.
@@ -166,15 +170,19 @@ Resumen para decirle:
 **Según su elección, guarda la llave correcta y fija el proveedor:**
 
 Si eligió **Anthropic** (default):
+
 ```bash
 wrangler secret put ANTHROPIC_API_KEY
 ```
+
 En `wrangler.toml` deja `LLM_PROVIDER = "anthropic"` (o simplemente omítela — es el default).
 
 Si eligió **OpenAI**:
+
 ```bash
 wrangler secret put OPENAI_API_KEY
 ```
+
 Y en `wrangler.toml`, dentro de `[vars]`, pon `LLM_PROVIDER = "openai"`.
 
 (Si no tiene la llave, mándalo a la consola del proveedor que eligió, espera a que la tenga, y luego corre el comando. La llave de pago es lo único que cuesta: fracciones de centavo por conversación.)
@@ -182,9 +190,11 @@ Y en `wrangler.toml`, dentro de `[vars]`, pon `LLM_PROVIDER = "openai"`.
 ### Paso 1.5 — Contraseña del panel (Basic Auth)
 
 El panel de administración (`/admin`) se protege con **autenticación básica HTTP**. El usuario siempre es `admin`; la contraseña la elige el miembro:
+
 ```bash
 wrangler secret put DASHBOARD_PASSWORD
 ```
+
 (Pídele que elija una contraseña y la pegue en la entrada oculta. Para entrar al panel después: usuario `admin`, contraseña la que acaba de poner.)
 
 ### Paso 1.6 — Desplegar
@@ -207,6 +217,7 @@ Tu panel:  https://<worker>.workers.dev/admin
 ```
 
 Dile algo así:
+
 > "**Este panel es tuyo.** Aquí vas a ver todo lo que sigue: cuando configuremos tu negocio va a aparecer en Configuración, cuando carguemos tu conocimiento lo vas a ver en Conocimiento, y cuando conectemos tus canales los vas a ver ponerse en verde en Conexiones. Déjalo abierto."
 
 Es normal que ahorita se vea vacío — el bot aún no tiene negocio ni canales. Esa es justo la gracia: la plataforma ya está viva y el resto lo va a ver aparecer.
@@ -238,6 +249,7 @@ Para lo que falte, pregunta **una por una** (no todas juntas):
 5. ¿Cuál es tu correo? (lo vamos a usar para que entres al panel de administración y, si quieres, para avisarte cuando alguien necesite atención humana)
 
 Con esas respuestas:
+
 - Escribe `name`, `description`, `city`, `website` dentro de `businessConfig` en **`member/config.local.ts`**.
 - Actualiza las variables `BOT_NAME` y `BUSINESS_NAME` en **`wrangler.toml`** (`[vars]`).
 
@@ -268,6 +280,7 @@ Además, en Pro el bot también entiende **notas de voz** (las transcribe con Wh
 Guarda las tareas elegidas en `memberConfig` dentro de `member/config.local.ts`.
 
 **Secrets según las tareas elegidas** (guárdalos ahora si aplican):
+
 ```bash
 wrangler secret put CALCOM_API_KEY            # si activó agendar citas
 wrangler secret put GOOGLE_SERVICE_ACCOUNT_JSON  # si su flujo lo requiere
@@ -401,9 +414,11 @@ uno → se pone VERDE en `/admin/conexiones` → sigues. Todas las guías viven 
 #### Sub-flujo ManyChat
 
 Lee `skill/references/channel-setup-guides/manychat-webhook.md` y sigue esos pasos. El secret a guardar es:
+
 ```bash
 wrangler secret put MANYCHAT_API_KEY
 ```
+
 La URL del webhook que se pega en el flujo de ManyChat (External Request) es: `$WORKER_URL/webhooks/manychat`.
 
 ✅ "Recarga tu panel → **Conexiones**. ManyChat debe estar en **verde**."
@@ -415,11 +430,13 @@ La URL del webhook que se pega en el flujo de ManyChat (External Request) es: `$
 > — y yo te voy guiando igual paso a paso".
 
 Lee `skill/references/channel-setup-guides/twilio-whatsapp.md` y sigue esos pasos. Los secrets a guardar:
+
 ```bash
 wrangler secret put TWILIO_ACCOUNT_SID
 wrangler secret put TWILIO_AUTH_TOKEN
 wrangler secret put TWILIO_WA_FROM
 ```
+
 La URL del webhook que el miembro pega en la configuración del sender de WhatsApp en Twilio es: `$WORKER_URL/webhooks/twilio`.
 
 > **¿Instalar el Twilio CLI?** Es opcional (ver el comparador). Default: hazlo por
@@ -433,6 +450,7 @@ La URL del webhook que el miembro pega en la configuración del sender de WhatsA
 Lee `skill/references/channel-setup-guides/meta-oficial.md` y sigue esos pasos —
 **una sola app de Meta y un solo webhook (`$WORKER_URL/webhooks/meta`) cubren
 Instagram y Messenger a la vez.** Resumen de secrets a guardar:
+
 ```bash
 wrangler secret put META_VERIFY_TOKEN        # una cadena que TÚ inventas (handshake)
 wrangler secret put META_APP_SECRET          # firma de los eventos (Settings → Basic)
@@ -441,6 +459,7 @@ wrangler secret put META_PAGE_ACCESS_TOKEN   # token de la Página (cubre Messen
 wrangler secret put INSTAGRAM_ACCESS_TOKEN
 wrangler secret put INSTAGRAM_APP_SECRET
 ```
+
 El verify token que pegas en Meta debe ser **idéntico** al de `META_VERIFY_TOKEN`.
 
 ✅ "Recarga tu panel → **Conexiones**. Meta debe estar en **verde**." (Manda un DM
@@ -468,19 +487,23 @@ El dueño recibe un mensaje directo (DM) en su propio Telegram cada vez que hay 
 #### 3.2.2 — Correo (opcional)
 
 Si además quiere recibir un correo cuando hay que escalar:
+
 ```bash
 wrangler secret put RESEND_API_KEY
 wrangler secret put OWNER_EMAIL
 ```
+
 (`OWNER_EMAIL` es el correo que dio en el Paso 2.1. `RESEND_API_KEY` se saca gratis en resend.com.) Si no quiere correo, sáltate esto.
 
 #### 3.2.3 — WhatsApp del dueño (opcional, Pro)
 
 Si quiere recibir el aviso por WhatsApp, se usa Twilio con una **plantilla aprobada** (Content Template), no texto libre — WhatsApp exige plantilla para mensajes iniciados por el negocio:
+
 ```bash
 wrangler secret put TWILIO_HANDOFF_CONTENT_SID
 wrangler secret put OWNER_WA_NUMBER
 ```
+
 (`TWILIO_HANDOFF_CONTENT_SID` es el ID de la plantilla aprobada en Twilio; `OWNER_WA_NUMBER` es el WhatsApp del dueño en formato internacional, ej. `+5215512345678`.) Requiere que ya haya configurado Twilio en el Paso 3.1. Si no, sáltate esto.
 
 #### 3.2.4 — Buffer de respuesta
@@ -553,6 +576,7 @@ Pruébalo: abre Telegram, busca @<tu-bot> y mándale "hola".
 Con el bot YA vivo y probado (no antes), remata así — sin presión, ya probó el gusto:
 
 1. **Si el bot es `free` (Starter), preséntale Forja+.** Algo como:
+
    > "Tu bot ya está atendiendo solo. Si algún día quieres más, con la comunidad de
    > Horizontes IA (**Forja+**) desbloqueas los **14 giros con panel a la medida**, los
    > comandos que trabajan por ti (`/reporte`, `/mantenimiento`, `/campaña`…) y el
@@ -573,6 +597,7 @@ Con el bot YA vivo y probado (no antes), remata así — sin presión, ya probó
 ## Resumen de secrets, variables y comandos (referencia rápida)
 
 **Secrets** (se guardan con `wrangler secret put NOMBRE`):
+
 - `ANTHROPIC_API_KEY` **o** `OPENAI_API_KEY` — requerido (el cerebro del bot, según el proveedor elegido en la Fase 1; se puede cambiar después desde el panel → Configuración → Modelo de IA).
 - `DASHBOARD_PASSWORD` — requerido en Pro (Basic Auth del panel; usuario fijo `admin`).
 - `TELEGRAM_BOT_TOKEN` — si usa Telegram.
@@ -585,14 +610,17 @@ Con el bot YA vivo y probado (no antes), remata así — sin presión, ya probó
 - `GOOGLE_SERVICE_ACCOUNT_JSON` — si su flujo lo requiere.
 
 **Variables** en `wrangler.toml` (`[vars]`):
+
 - `BOT_NAME`, `BUSINESS_NAME`, `BOT_LANGUAGE`, `BOT_TIER` (= `free` en el Starter), `BUFFER_SECONDS`, `DASHBOARD_BASE_URL`.
 - `LLM_PROVIDER` — `"anthropic"` (default) o `"openai"`. Cambia el proveedor de IA; se puede cambiar después y re-desplegar (o desde el panel → Configuración → Modelo de IA).
 - Opcionales para fijar modelos: `ANTHROPIC_MODEL_FAST`/`ANTHROPIC_MODEL_SMART`, `OPENAI_MODEL_FAST`/`OPENAI_MODEL_SMART`.
 
 **Bindings** ya declarados en `wrangler.toml`:
+
 - `AI` (Workers AI), `AGENT` (Durable Object `SupportAgent`), `DB` (D1 `horizontes_bot_db`), `KB` (Vectorize `horizontes_bot_kb`), `CATALOG` (R2 `horizontes-bot-catalog`). Cron diario `0 3 * * *` (purga mensajes de más de 90 días).
 
 **Comandos** (todos con **pnpm**):
+
 - `pnpm install` — instalar dependencias.
 - `pnpm db:apply:remote` — aplicar migraciones D1 en la nube. (`pnpm db:apply` es local.)
 - `wrangler deploy` (o `pnpm run deploy`) — desplegar.

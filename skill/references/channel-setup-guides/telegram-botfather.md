@@ -34,7 +34,7 @@ Al final tu bot responderá solo a tus clientes dentro de Telegram.
 3. Toca **Iniciar / Start** (o escribe `/start`).
 4. Escribe el comando **`/newbot`** y mándalo.
 5. BotFather te va a pedir **dos cosas**:
-   - **Nombre del bot**: el nombre visible (ej. *Asistente de Tacos El Güero*).
+   - **Nombre del bot**: el nombre visible (ej. _Asistente de Tacos El Güero_).
      Puede llevar espacios y acentos.
    - **Username del bot**: un nombre único que **debe terminar en `bot`**
      (ej. `tacoselguero_bot`). Si te dice que ya existe, prueba otro.
@@ -70,8 +70,8 @@ Enter. (No se va a ver en pantalla mientras lo pegas; es normal por seguridad.)
 
 ## Paso 3 — Publicar el bot y conectar el webhook
 
-El "webhook" es el puente que le dice a Telegram: *"cuando alguien me escriba,
-manda el mensaje a mi Worker"*. Tu Worker lo configura solo al publicarse.
+El "webhook" es el puente que le dice a Telegram: _"cuando alguien me escriba,
+manda el mensaje a mi Worker"_. Tu Worker lo configura solo al publicarse.
 
 1. Publica tu bot con:
 
@@ -108,7 +108,7 @@ Telegram). Es muy fácil:
 2. Mándale el comando **`/start`**.
 3. Tu bot guarda tu chat ID y lo muestra en tu **panel de control
    (dashboard)**. Entra al dashboard y copia el número que aparece como
-   *"Tu chat ID de Telegram"* (es un número largo, ej. `987654321`).
+   _"Tu chat ID de Telegram"_ (es un número largo, ej. `987654321`).
 4. Guárdalo como secret:
 
    ```bash
@@ -187,13 +187,13 @@ Business aprobado.
 
 ## Tabla rápida de secrets
 
-| Para qué sirve | Secret | De dónde sale |
-|---|---|---|
-| Conectar tu bot a Telegram | `TELEGRAM_BOT_TOKEN` | @BotFather (Paso 1) |
-| Avisos de handoff a ti (default, gratis) | `OWNER_TELEGRAM_CHAT_ID` | Tu dashboard tras mandar `/start` (Paso 4) |
-| Avisos por correo (opcional) | `RESEND_API_KEY`, `OWNER_EMAIL` | resend.com |
-| WhatsApp nativo (opcional, Pro) | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WA_FROM` | Consola de Twilio |
-| Plantilla aprobada para handoff WA | `TWILIO_HANDOFF_CONTENT_SID`, `OWNER_WA_NUMBER` | Twilio (Content Template aprobada) |
+| Para qué sirve                           | Secret                                                      | De dónde sale                              |
+| ---------------------------------------- | ----------------------------------------------------------- | ------------------------------------------ |
+| Conectar tu bot a Telegram               | `TELEGRAM_BOT_TOKEN`                                        | @BotFather (Paso 1)                        |
+| Avisos de handoff a ti (default, gratis) | `OWNER_TELEGRAM_CHAT_ID`                                    | Tu dashboard tras mandar `/start` (Paso 4) |
+| Avisos por correo (opcional)             | `RESEND_API_KEY`, `OWNER_EMAIL`                             | resend.com                                 |
+| WhatsApp nativo (opcional, Pro)          | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WA_FROM` | Consola de Twilio                          |
+| Plantilla aprobada para handoff WA       | `TWILIO_HANDOFF_CONTENT_SID`, `OWNER_WA_NUMBER`             | Twilio (Content Template aprobada)         |
 
 > El secret `MANYCHAT_API_KEY` es para conectar WhatsApp por **ManyChat** (otro
 > canal). Esa configuración está en su propia guía dentro de

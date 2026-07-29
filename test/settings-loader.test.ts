@@ -148,7 +148,10 @@ describe("resolveAgentConfig — temperature", () => {
 
 describe("resolveAgentConfig — learned lessons (flywheel)", () => {
   it("injects lessons into the generated prompt", async () => {
-    await repo.set(SETTING_KEYS.learnedLessons, JSON.stringify(["Confirma el pago antes de prometer acceso."]));
+    await repo.set(
+      SETTING_KEYS.learnedLessons,
+      JSON.stringify(["Confirma el pago antes de prometer acceso."]),
+    );
     const cfg = await resolveAgentConfig(env, TOOLS);
     expect(cfg.systemPrompt).toContain("<lecciones_aprendidas>");
     expect(cfg.systemPrompt).toContain("Confirma el pago antes de prometer acceso.");

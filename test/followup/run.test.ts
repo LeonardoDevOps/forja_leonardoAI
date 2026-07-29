@@ -31,12 +31,7 @@ import { Db } from "../../src/db/client";
 import { ConversationsRepo } from "../../src/db/conversations";
 import { MessagesRepo } from "../../src/db/messages";
 import { InsightsRepo } from "../../src/db/insights";
-import {
-  pickFollowupCandidates,
-  runFollowups,
-  MIN_IDLE_MS,
-  MAX_IDLE_MS,
-} from "../../src/followup/run";
+import { pickFollowupCandidates, runFollowups, MIN_IDLE_MS, MAX_IDLE_MS } from "../../src/followup/run";
 import type { Env } from "../../src/env";
 
 let env: Env;
