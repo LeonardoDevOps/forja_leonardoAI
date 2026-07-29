@@ -106,9 +106,7 @@ function parseFallback(
 ): { msg: IncomingMessage; contentType: string } {
   const body = (payload ?? {}) as ManychatFallbackPayload;
   const subscriber = body.id ?? body.subscriber_id;
-  const displayName =
-    [body.first_name, body.last_name].filter(Boolean).join(" ").trim() ||
-    undefined;
+  const displayName = [body.first_name, body.last_name].filter(Boolean).join(" ").trim() || undefined;
   const audio = body.attachments?.find((a) => a.type === "audio");
   const image = body.attachments?.find((a) => a.type === "image");
   const detectedChannel = body.last_growth_tool?.channel?.trim() || undefined;
@@ -120,10 +118,7 @@ function parseFallback(
       channel: "manychat",
       channelUserId: String(subscriber ?? ""),
       displayName,
-      text:
-        body.last_input_text && body.last_input_text !== "[audio]"
-          ? body.last_input_text
-          : undefined,
+      text: body.last_input_text && body.last_input_text !== "[audio]" ? body.last_input_text : undefined,
       audioUrl: audio?.payload.url,
       imageUrl: image?.payload.url,
       isOwnerMessage: false,
@@ -149,8 +144,7 @@ export function makeLearnedAdapter(channel: string): ChannelAdapter {
       // Fallback chain seed: static env content type -> the channel name ->
       // "instagram". The per-message detected channel (auto-channel) overrides
       // this inside parseWithMapping / parseFallback when present.
-      const fallbackContentType =
-        env.MANYCHAT_CONTENT_TYPE ?? channel ?? "instagram";
+      const fallbackContentType = env.MANYCHAT_CONTENT_TYPE ?? channel ?? "instagram";
 
       const { msg, contentType } = mapping
         ? parseWithMapping(payload, mapping, fallbackContentType)
@@ -175,14 +169,10 @@ export function makeLearnedAdapter(channel: string): ChannelAdapter {
         loadLearnedMapping(repo, channel),
       ]);
       const contentType =
-        persisted ??
-        mapping?.sendType ??
-        env.MANYCHAT_CONTENT_TYPE ??
-        channel ??
-        "instagram";
+        persisted ?? mapping?.sendType ?? env.MANYCHAT_CONTENT_TYPE ?? channel ?? "instagram";
 
       for (let i = 0; i < reply.chunks.length; i++) {
-        const delay = i === 0 ? 0 : reply.interChunkDelayMs ?? 1000;
+        const delay = i === 0 ? 0 : (reply.interChunkDelayMs ?? 1000);
         if (delay > 0) await new Promise((r) => setTimeout(r, delay));
         await fetch(`${MANYCHAT_API}/sending/sendContent`, {
           method: "POST",

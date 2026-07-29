@@ -14,10 +14,7 @@ const PASSWORD = "secret123";
 
 function basicAuthHeader(user: string, pass: string): string {
   const raw = `${user}:${pass}`;
-  const b64 =
-    typeof btoa === "function"
-      ? btoa(raw)
-      : Buffer.from(raw, "utf-8").toString("base64");
+  const b64 = typeof btoa === "function" ? btoa(raw) : Buffer.from(raw, "utf-8").toString("base64");
   return `Basic ${b64}`;
 }
 

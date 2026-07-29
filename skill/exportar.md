@@ -25,6 +25,7 @@ prospectos, agregas los leads.
 SIGUE ESTAS REGLAS AL PIE DE LA LETRA.
 
 ## PASO 0 — Revisión (no toques nada)
+
 1. Confirma que estás en la carpeta del bot: deben existir `package.json` y `wrangler.toml`.
    Si no, **detente y dilo** — no adivines la carpeta.
 2. Detecta el **nivel** solo para saber qué esperar (NO para bloquear nada): mira `BOT_TIER`
@@ -38,7 +39,7 @@ SIGUE ESTAS REGLAS AL PIE DE LA LETRA.
    En todo bot habrá `conversations`, `messages`, `tickets`. La tabla `leads` existe siempre
    pero puede estar **vacía**.
 4. `wrangler` necesita estar conectado a Cloudflare. Si un comando da error de acceso, dile:
-   *"Necesito conectar Cloudflare una vez. Escribe `! pnpm wrangler login` y sigue los pasos."*
+   _"Necesito conectar Cloudflare una vez. Escribe `! pnpm wrangler login` y sigue los pasos."_
    No inventes credenciales ni pegues tokens en el chat.
 5. Pregúntale **qué quiere exportar** (una pregunta a la vez, en su idioma):
    - **Leads / prospectos** — los contactos que el bot capturó (nombre, contacto, intención…).
@@ -58,32 +59,38 @@ SIGUE ESTAS REGLAS AL PIE DE LA LETRA.
 > consultas la base local de dev (vacía) — siempre `--remote`.
 
 ## PASO 1 — Saca los datos (consultas de solo lectura)
+
 Corre solo las consultas de lo que pidió. Agrega **`--json`** para que la salida sea fácil de
 volcar a un archivo (si tu `wrangler` no soporta `--json`, corre el mismo comando sin él y lee la
 tabla de resultados). Sustituye `<DESDE>` por el inicio del periodo en ms, o **quita el `WHERE`
 completo** si eligió "todo el historial". **Cuenta primero** para saber si hay algo que exportar.
 
 **Leads / prospectos** (Pro y solo si hay filas):
+
 ```
 wrangler d1 execute horizontes_bot_db --remote --command "SELECT COUNT(*) AS total FROM leads;"
 wrangler d1 execute horizontes_bot_db --remote --json --command "SELECT id, name, contact, channel_user_id, intent, status, notes, exported_to, external_id, metadata, datetime(created_at/1000,'unixepoch') AS creado, datetime(updated_at/1000,'unixepoch') AS actualizado FROM leads WHERE created_at >= <DESDE> ORDER BY created_at DESC;"
 ```
+
 La columna `metadata` trae los campos propios del giro en formato JSON (ej. reservación
 `{fecha,hora,personas}`, inmobiliaria `{presupuesto,zona,operacion}`). Déjala tal cual como una
 columna; si el miembro quiere esos campos en columnas separadas, puedes sacarlos con
 `json_extract(metadata,'$.zona')` (cambia `zona` por el campo real del giro).
 
 **Conversaciones** (lista de clientes; existe en todo bot):
+
 ```
 wrangler d1 execute horizontes_bot_db --remote --command "SELECT COUNT(*) AS total FROM conversations;"
 wrangler d1 execute horizontes_bot_db --remote --json --command "SELECT id, channel, channel_user_id, display_name, datetime(started_at/1000,'unixepoch') AS primer_contacto, datetime(last_message_at/1000,'unixepoch') AS ultima_actividad FROM conversations WHERE last_message_at >= <DESDE> ORDER BY last_message_at DESC;"
 ```
 
 **Mensajes / transcripciones** (historial de chat; puede ser grande — avísale):
+
 ```
 wrangler d1 execute horizontes_bot_db --remote --command "SELECT COUNT(*) AS total FROM messages;"
 wrangler d1 execute horizontes_bot_db --remote --json --command "SELECT m.conversation_id, c.channel, c.display_name, m.role, m.content, datetime(m.created_at/1000,'unixepoch') AS fecha FROM messages m LEFT JOIN conversations c ON c.id = m.conversation_id WHERE m.created_at >= <DESDE> ORDER BY m.conversation_id, m.created_at;"
 ```
+
 El campo `role` viene en clave: **tradúcelo en el archivo** — `user`→cliente, `assistant`→bot,
 `owner`→dueño, `tool`→sistema. Si son muchísimos mensajes, ofrécele acotar por periodo o exportar
 **una sola conversación** filtrando `WHERE m.conversation_id = 'canal:usuario'`.
@@ -92,6 +99,7 @@ Lee cada resultado y guárdalo en memoria; **no le pegues el volcado crudo al mi
 — eso va en los archivos.
 
 ## PASO 2 — Genera los archivos (CSV y JSON opcional)
+
 1. Crea la carpeta `member/exportes/` si no existe. Está **dentro de `member/`**, que es del
    cliente y **no se sobrescribe** cuando se actualiza la plantilla — sus respaldos quedan a salvo.
 2. Con las filas que sacaste, **escribe tú el archivo** (no dependas de que el sistema tenga
@@ -99,7 +107,7 @@ Lee cada resultado y guárdalo en memoria; **no le pegues el volcado crudo al mi
    - `member/exportes/leads-<periodo>-<fecha>.csv`
    - `member/exportes/conversaciones-<periodo>-<fecha>.csv`
    - `member/exportes/mensajes-<periodo>-<fecha>.csv`
-   (Ej. de `<periodo>-<fecha>`: `todo-2026-07-15` o `may2026-2026-07-15`.)
+     (Ej. de `<periodo>-<fecha>`: `todo-2026-07-15` o `may2026-2026-07-15`.)
 3. Reglas del CSV para que abra bien en Excel/Google Sheets:
    - Primera fila = encabezados en español claro (Nombre, Contacto, Intención, Estado, Creado…).
    - Encierra cada valor entre comillas dobles y **duplica** las comillas internas (`"` → `""`).
@@ -112,19 +120,21 @@ Lee cada resultado y guárdalo en memoria; **no le pegues el volcado crudo al mi
    defecto entrega solo CSV.
 5. **Tablas vacías con honestidad**: si un conjunto trae 0 filas (típico: leads en un bot
    Starter), **no generes un archivo vacío con cara de fracaso**. Díselo claro —
-   *"Todavía no hay prospectos capturados, así que no hay nada que exportar de ahí"*— y sigue con
+   _"Todavía no hay prospectos capturados, así que no hay nada que exportar de ahí"_— y sigue con
    lo que sí tiene datos.
 
 ## PASO 3 — Entrega (rutas + resumen)
+
 - Dale la **ruta absoluta** de cada archivo que creaste y dile con qué abrirlo (Excel, Google
   Sheets, o cualquier hoja de cálculo).
-- Pégale en el chat un **resumen de una línea por archivo** con el conteo: ej. *"Leads: 84
-  prospectos → `.../member/exportes/leads-todo-2026-07-15.csv`"*, *"Conversaciones: 312 clientes",
-  "Mensajes: 5,180 líneas de chat"*.
+- Pégale en el chat un **resumen de una línea por archivo** con el conteo: ej. _"Leads: 84
+  prospectos → `.../member/exportes/leads-todo-2026-07-15.csv`"_, _"Conversaciones: 312 clientes",
+  "Mensajes: 5,180 líneas de chat"_.
 - Recuérdale que son **sus datos, para que se los lleve o los respalde** — este skill no envió
   nada a ningún lado ni tocó el bot en vivo.
 
 ## Reglas de seguridad (no las rompas)
+
 - **Solo lectura.** Únicamente `SELECT`. NUNCA corras `INSERT`, `UPDATE`, `DELETE`, `DROP` ni
   `wrangler d1 execute ... --file=...schema.sql` desde este skill.
 - **NUNCA** hagas `deploy` ni `git push` ni commits por tu cuenta. Este skill no toca el bot en
@@ -143,6 +153,7 @@ Lee cada resultado y guárdalo en memoria; **no le pegues el volcado crudo al mi
 Empieza por el PASO 0.
 
 ## Modo rápido (respaldo recurrente)
+
 Si el miembro solo quiere "bajar mis datos otra vez" y ya lo corriste antes: no le repreguntes el
 nivel ni las tablas (ya los sabes; si no están en el contexto, reverifícalos rápido con la consulta
 de descubrimiento). Toma el mismo alcance de la última vez (o "todo el historial" por defecto),

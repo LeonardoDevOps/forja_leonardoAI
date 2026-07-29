@@ -40,7 +40,7 @@ export const twilioAdapter: ChannelAdapter = {
     const auth = btoa(`${sid}:${tok}`);
     const url = `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`;
     for (let i = 0; i < reply.chunks.length; i++) {
-      const delay = i === 0 ? 0 : reply.interChunkDelayMs ?? 1000;
+      const delay = i === 0 ? 0 : (reply.interChunkDelayMs ?? 1000);
       if (delay > 0) await new Promise((r) => setTimeout(r, delay));
       const body = new URLSearchParams({
         From: `whatsapp:${from}`,

@@ -110,14 +110,14 @@ Cuando el bot necesita pasarte un cliente a ti (handoff), **no** te avisa por Ma
 
 ## Resumen
 
-| Qué | Valor |
-|---|---|
-| Secreto | `MANYCHAT_API_KEY` (y `OWNER_TELEGRAM_CHAT_ID` o `TWILIO_HANDOFF_CONTENT_SID` + `OWNER_WA_NUMBER` para los avisos al dueño) |
-| Webhook | `<worker-url>/webhooks/manychat` (método `POST`) |
-| Header | `X-Api-Key: <MANYCHAT_API_KEY>` |
-| Campo de respuesta | `reply` (mapéalo a "Send Message") |
-| Canales | Instagram, Messenger, WhatsApp, Telegram (conectados en ManyChat) |
-| Costo | Plan de ManyChat (tiene capa gratis limitada) |
-| Dificultad | Media |
+| Qué                | Valor                                                                                                                       |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| Secreto            | `MANYCHAT_API_KEY` (y `OWNER_TELEGRAM_CHAT_ID` o `TWILIO_HANDOFF_CONTENT_SID` + `OWNER_WA_NUMBER` para los avisos al dueño) |
+| Webhook            | `<worker-url>/webhooks/manychat` (método `POST`)                                                                            |
+| Header             | `X-Api-Key: <MANYCHAT_API_KEY>`                                                                                             |
+| Campo de respuesta | `reply` (mapéalo a "Send Message")                                                                                          |
+| Canales            | Instagram, Messenger, WhatsApp, Telegram (conectados en ManyChat)                                                           |
+| Costo              | Plan de ManyChat (tiene capa gratis limitada)                                                                               |
+| Dificultad         | Media                                                                                                                       |
 
 Listo. Con ManyChat tu bot atiende varios canales desde un solo lugar.

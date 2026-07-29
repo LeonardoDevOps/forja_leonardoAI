@@ -14,19 +14,10 @@ const SPAM_REPEATS = 2;
 
 /** "  ¡HOLA!! " → "¡hola!!" no — quita acentos/espacios extra y baja a minúsculas. */
 export function normalizeForSpam(text: string): string {
-  return text
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
+  return text.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
 }
 
-export async function isRepeatSpam(
-  db: Db,
-  conversationId: string,
-  text: string,
-): Promise<boolean> {
+export async function isRepeatSpam(db: Db, conversationId: string, text: string): Promise<boolean> {
   const norm = normalizeForSpam(text);
   if (norm.length < 2) return false; // "ok"/"sí" sueltos no cuentan como spam
   const rows = await db.all<{ content: string }>(
@@ -50,11 +41,7 @@ export const DAILY_CAP_SNOOZE_MS = 12 * 3600_000;
 export const DAILY_CAP_MESSAGE =
   "¡Gracias por escribir tanto! Por hoy ya te acompañé un buen rato; si necesitas algo más, con gusto seguimos mañana. 🙌";
 
-export async function isOverDailyCap(
-  db: Db,
-  conversationId: string,
-  now = Date.now(),
-): Promise<boolean> {
+export async function isOverDailyCap(db: Db, conversationId: string, now = Date.now()): Promise<boolean> {
   const row = await db.first<{ n: number }>(
     `SELECT COUNT(*) as n FROM messages
      WHERE conversation_id = ? AND role = 'user' AND created_at > ?`,

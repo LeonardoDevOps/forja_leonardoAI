@@ -170,12 +170,8 @@ describe("detectKind", () => {
   });
 
   it("detects from attachment `type` markers without an extension", () => {
-    expect(detectKind({ attachments: [{ type: "image", payload: { url: "https://x/u" } }] })).toBe(
-      "image",
-    );
-    expect(detectKind({ attachments: [{ type: "audio", payload: { url: "https://x/u" } }] })).toBe(
-      "audio",
-    );
+    expect(detectKind({ attachments: [{ type: "image", payload: { url: "https://x/u" } }] })).toBe("image");
+    expect(detectKind({ attachments: [{ type: "audio", payload: { url: "https://x/u" } }] })).toBe("audio");
   });
 
   it("prefers audio over image when both are present", () => {

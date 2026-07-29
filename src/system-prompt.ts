@@ -4,12 +4,12 @@ export interface SystemPromptInput {
   botName: string;
   businessName: string;
   language: string;
-  businessContext: string;          // services, hours, location, etc.
-  toolList: string[];               // names of available tools
-  nichoPlaybook?: string;           // injected by skill at deploy time
-  tone?: string;                    // owner-chosen tone (e.g. "cálido y cercano")
+  businessContext: string; // services, hours, location, etc.
+  toolList: string[]; // names of available tools
+  nichoPlaybook?: string; // injected by skill at deploy time
+  tone?: string; // owner-chosen tone (e.g. "cálido y cercano")
   extraEscalationKeywords?: string[]; // extra words that trigger a human handoff
-  lessons?: string[];               // flywheel: rules distilled from owner takeovers
+  lessons?: string[]; // flywheel: rules distilled from owner takeovers
 }
 
 const TEMPLATE = `<output_language>
@@ -105,9 +105,7 @@ export function renderSystemPrompt(input: SystemPromptInput): string {
   const tone = input.tone?.trim();
   const toneLine = tone ? `\n- Adopta un estilo ${tone} en todas tus respuestas.` : "";
 
-  const extraKeywords = (input.extraEscalationKeywords ?? [])
-    .map((k) => k.trim())
-    .filter(Boolean);
+  const extraKeywords = (input.extraEscalationKeywords ?? []).map((k) => k.trim()).filter(Boolean);
   const extraEscalation =
     extraKeywords.length > 0
       ? `\n- El cliente escribe alguna de estas palabras: ${extraKeywords.join(", ")}.`
@@ -122,8 +120,7 @@ ${lessons.map((l) => `- ${l}`).join("\n")}
 </lecciones_aprendidas>`
       : "";
 
-  return TEMPLATE
-    .replaceAll("{{LANGUAGE}}", input.language)
+  return TEMPLATE.replaceAll("{{LANGUAGE}}", input.language)
     .replaceAll("{{BOT_NAME}}", input.botName)
     .replaceAll("{{BUSINESS_NAME}}", input.businessName)
     .replaceAll("{{BUSINESS_CONTEXT}}", input.businessContext)

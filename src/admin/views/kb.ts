@@ -11,7 +11,7 @@ import { layout } from "./layout";
 function esc(s: string): string {
   return s.replace(
     /[&<>"']/g,
-    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]!),
+    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!,
   );
 }
 
@@ -27,7 +27,8 @@ function ago(ms: number): string {
 /** Callout banner. `tone` picks the token: ok=verde (éxito), bad=rojo (error), neutral=gris (info). */
 function banner(tone: "ok" | "bad" | "neutral", text: string): string {
   const color = tone === "ok" ? "var(--ok)" : tone === "bad" ? "var(--bad)" : "var(--dim)";
-  const bg = tone === "ok" ? "rgba(127,183,126,.1)" : tone === "bad" ? "rgba(217,122,106,.1)" : "var(--panel2)";
+  const bg =
+    tone === "ok" ? "rgba(127,183,126,.1)" : tone === "bad" ? "rgba(217,122,106,.1)" : "var(--panel2)";
   return `<div style="border:1px solid ${color};background:${bg};color:${tone === "neutral" ? "var(--muted)" : color};padding:10px 14px;font-size:12.5px;margin-bottom:16px">${text}</div>`;
 }
 
@@ -127,7 +128,10 @@ export function renderKbEditor(doc: KbDoc | null, env: Env): string {
       <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px">
         <button type="submit" class="bigbtn font-display font-bold text-[12.5px] cursor-pointer"
                 style="background:var(--accent);border:1px solid var(--accent);color:#1a1206;box-shadow:4px 4px 0 var(--linelit);padding:11px 20px">Guardar e indexar</button>
-        ${isNew ? "" : `
+        ${
+          isNew
+            ? ""
+            : `
         <details style="margin-left:auto">
           <summary class="text-bad text-[12px]" style="cursor:pointer;list-style:none">Eliminar documento…</summary>
           <span style="display:inline-flex;align-items:center;gap:10px;margin-top:8px">
@@ -135,7 +139,8 @@ export function renderKbEditor(doc: KbDoc | null, env: Env): string {
             <button type="submit" formaction="/admin/kb/${encodeURIComponent(doc.id)}/delete" formnovalidate
                     style="background:transparent;border:1px solid var(--bad);color:var(--bad);padding:6px 12px;font-size:11px;cursor:pointer">Sí, eliminar</button>
           </span>
-        </details>`}
+        </details>`
+        }
       </div>
     </form>`;
 

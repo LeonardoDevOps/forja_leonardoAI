@@ -20,16 +20,12 @@ import worker from "../../src/index";
 // pinned to the same classifier behavior.
 describe("detectKind (heuristic reused by the learn endpoint)", () => {
   it("classifies audio by extension", () => {
-    expect(
-      detectKind({ attachments: [{ payload: { url: "https://x/a.mp3" } }] }),
-    ).toBe("audio");
+    expect(detectKind({ attachments: [{ payload: { url: "https://x/a.mp3" } }] })).toBe("audio");
     expect(detectKind({ url: "https://x/voice.ogg?sig=abc" })).toBe("audio");
   });
 
   it("classifies image by extension", () => {
-    expect(
-      detectKind({ attachments: [{ payload: { url: "https://x/p.jpg" } }] }),
-    ).toBe("image");
+    expect(detectKind({ attachments: [{ payload: { url: "https://x/p.jpg" } }] })).toBe("image");
     expect(detectKind({ photo: "https://x/pic.png#frag" })).toBe("image");
   });
 
@@ -50,9 +46,7 @@ describe("detectKind (heuristic reused by the learn endpoint)", () => {
   });
 
   it("falls back to text", () => {
-    expect(detectKind({ body: { id: "123" }, last_input_text: "hola" })).toBe(
-      "text",
-    );
+    expect(detectKind({ body: { id: "123" }, last_input_text: "hola" })).toBe("text");
   });
 
   it("tolerates null/undefined/arrays", () => {
@@ -154,11 +148,7 @@ describe("POST /webhooks/learn/:channel", () => {
   });
 
   it("does not 404/500 the rest of the router (health still works)", async () => {
-    const res = await worker.fetch(
-      new Request("https://test/health"),
-      env,
-      {} as any,
-    );
+    const res = await worker.fetch(new Request("https://test/health"), env, {} as any);
     expect(res.status).toBe(200);
   });
 });

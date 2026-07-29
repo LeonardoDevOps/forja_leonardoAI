@@ -99,10 +99,7 @@ describe("makeLearnedAdapter.parseIncoming — fallback ManyChat contract", () =
 
   it("falls back to subscriber_id when id is absent", async () => {
     const adapter = makeLearnedAdapter("instagram");
-    const msg = await adapter.parseIncoming(
-      req({ subscriber_id: "legacy999", last_input_text: "hey" }),
-      env,
-    );
+    const msg = await adapter.parseIncoming(req({ subscriber_id: "legacy999", last_input_text: "hey" }), env);
     expect(msg.channelUserId).toBe("legacy999");
   });
 
@@ -137,14 +134,9 @@ describe("makeLearnedAdapter.parseIncoming — fallback ManyChat contract", () =
 
 describe("makeLearnedAdapter.sendReply — content.type (auto-channel)", () => {
   it("sends via sendContent with subscriber_id + chunk text", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response("{}", { status: 200 }));
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 200 }));
     const adapter = makeLearnedAdapter("instagram");
-    await adapter.sendReply(
-      { channel: "manychat", channelUserId: "abc123", chunks: ["hola"] },
-      env,
-    );
+    await adapter.sendReply({ channel: "manychat", channelUserId: "abc123", chunks: ["hola"] }, env);
     const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://api.manychat.com/fb/sending/sendContent");
     const body = JSON.parse(String(init.body));
@@ -154,9 +146,7 @@ describe("makeLearnedAdapter.sendReply — content.type (auto-channel)", () => {
   });
 
   it("echoes the auto-channel detected at parse time (last_growth_tool.channel)", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response("{}", { status: 200 }));
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 200 }));
     const adapter = makeLearnedAdapter("instagram");
     // Inbound on whatsapp -> the reply should go back as content.type "whatsapp".
     await adapter.parseIncoming(
@@ -167,94 +157,59 @@ describe("makeLearnedAdapter.sendReply — content.type (auto-channel)", () => {
       }),
       env,
     );
-    await adapter.sendReply(
-      { channel: "manychat", channelUserId: "abc123", chunks: ["hi"] },
-      env,
-    );
-    const body = JSON.parse(
-      String((fetchSpy.mock.calls[0][1] as RequestInit).body),
-    );
+    await adapter.sendReply({ channel: "manychat", channelUserId: "abc123", chunks: ["hi"] }, env);
+    const body = JSON.parse(String((fetchSpy.mock.calls[0][1] as RequestInit).body));
     expect(body.data.content.type).toBe("whatsapp");
   });
 
   it("echoes the auto-channel via a learned channelPath", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response("{}", { status: 200 }));
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 200 }));
     await saveLearnedMapping(repo, "n8n", {
       idPath: "uid",
       channelPath: "src",
     });
     const adapter = makeLearnedAdapter("n8n");
     await adapter.parseIncoming(req({ uid: "u1", src: "messenger" }), env);
-    await adapter.sendReply(
-      { channel: "manychat", channelUserId: "u1", chunks: ["yo"] },
-      env,
-    );
-    const body = JSON.parse(
-      String((fetchSpy.mock.calls[0][1] as RequestInit).body),
-    );
+    await adapter.sendReply({ channel: "manychat", channelUserId: "u1", chunks: ["yo"] }, env);
+    const body = JSON.parse(String((fetchSpy.mock.calls[0][1] as RequestInit).body));
     expect(body.data.content.type).toBe("messenger");
   });
 
   it("uses learned mapping.sendType when no channel is detected in the payload", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response("{}", { status: 200 }));
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 200 }));
     await saveLearnedMapping(repo, "custom", {
       idPath: "id",
       sendType: "telegram",
     });
     const adapter = makeLearnedAdapter("custom");
     await adapter.parseIncoming(req({ id: "u3" }), env);
-    await adapter.sendReply(
-      { channel: "manychat", channelUserId: "u3", chunks: ["hi"] },
-      env,
-    );
-    const body = JSON.parse(
-      String((fetchSpy.mock.calls[0][1] as RequestInit).body),
-    );
+    await adapter.sendReply({ channel: "manychat", channelUserId: "u3", chunks: ["hi"] }, env);
+    const body = JSON.parse(String((fetchSpy.mock.calls[0][1] as RequestInit).body));
     expect(body.data.content.type).toBe("telegram");
   });
 
   it("falls back to env.MANYCHAT_CONTENT_TYPE when nothing else resolves", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response("{}", { status: 200 }));
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 200 }));
     const envWa = { DB: d1, MANYCHAT_API_KEY: "key", MANYCHAT_CONTENT_TYPE: "whatsapp" } as unknown as Env;
     const adapter = makeLearnedAdapter("zapier");
     // No channel in payload, no mapping, env override present.
     await adapter.parseIncoming(req({ id: "u4", last_input_text: "x" }), envWa);
-    await adapter.sendReply(
-      { channel: "manychat", channelUserId: "u4", chunks: ["hi"] },
-      envWa,
-    );
-    const body = JSON.parse(
-      String((fetchSpy.mock.calls[0][1] as RequestInit).body),
-    );
+    await adapter.sendReply({ channel: "manychat", channelUserId: "u4", chunks: ["hi"] }, envWa);
+    const body = JSON.parse(String((fetchSpy.mock.calls[0][1] as RequestInit).body));
     expect(body.data.content.type).toBe("whatsapp");
   });
 
   it("falls back to the channel name when no detection, mapping, or env", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response("{}", { status: 200 }));
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 200 }));
     const adapter = makeLearnedAdapter("messenger");
     await adapter.parseIncoming(req({ id: "u5", last_input_text: "x" }), env);
-    await adapter.sendReply(
-      { channel: "manychat", channelUserId: "u5", chunks: ["hi"] },
-      env,
-    );
-    const body = JSON.parse(
-      String((fetchSpy.mock.calls[0][1] as RequestInit).body),
-    );
+    await adapter.sendReply({ channel: "manychat", channelUserId: "u5", chunks: ["hi"] }, env);
+    const body = JSON.parse(String((fetchSpy.mock.calls[0][1] as RequestInit).body));
     expect(body.data.content.type).toBe("messenger");
   });
 
   it("sends multiple chunks (no real delay via fake timers not needed for chunk 0)", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response("{}", { status: 200 }));
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 200 }));
     const adapter = makeLearnedAdapter("instagram");
     await adapter.sendReply(
       {
@@ -275,10 +230,9 @@ describe("makeLearnedAdapter.sendReply — content.type (auto-channel)", () => {
   it("throws when MANYCHAT_API_KEY is not set", async () => {
     const adapter = makeLearnedAdapter("instagram");
     await expect(
-      adapter.sendReply(
-        { channel: "manychat", channelUserId: "abc", chunks: ["hi"] },
-        { DB: d1 } as unknown as Env,
-      ),
+      adapter.sendReply({ channel: "manychat", channelUserId: "abc", chunks: ["hi"] }, {
+        DB: d1,
+      } as unknown as Env),
     ).rejects.toThrow("MANYCHAT_API_KEY not set");
   });
 });

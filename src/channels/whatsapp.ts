@@ -190,7 +190,7 @@ export const whatsappAdapter: ChannelAdapter = {
     }
     const url = `https://graph.facebook.com/${GRAPH_VERSION}/${phoneId}/messages`;
     for (let i = 0; i < reply.chunks.length; i++) {
-      const delay = i === 0 ? 0 : reply.interChunkDelayMs ?? 1000;
+      const delay = i === 0 ? 0 : (reply.interChunkDelayMs ?? 1000);
       if (delay > 0) await new Promise((r) => setTimeout(r, delay));
       const res = await fetch(url, {
         method: "POST",

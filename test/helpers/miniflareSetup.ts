@@ -54,7 +54,7 @@ export async function createTestMiniflare() {
   // Apply schema
   const db = await mf.getD1Database("DB");
   const schemaSql = await import("fs").then((fs) =>
-    fs.readFileSync(path.join(ROOT, "src", "db", "schema.sql"), "utf-8")
+    fs.readFileSync(path.join(ROOT, "src", "db", "schema.sql"), "utf-8"),
   );
   // D1's exec() expects one complete statement per call, so split on ";",
   // strip SQL comment lines, and collapse each statement onto a single line.
@@ -66,7 +66,7 @@ export async function createTestMiniflare() {
         .filter((line) => !line.trim().startsWith("--"))
         .join(" ")
         .replace(/\s+/g, " ")
-        .trim()
+        .trim(),
     )
     .filter((stmt) => stmt.length > 0);
   for (const stmt of statements) {

@@ -77,10 +77,7 @@ export class MessagesRepo {
   }
 
   async purgeOlderThan(cutoffMs: number): Promise<number> {
-    const res = await this.db.run(
-      "DELETE FROM messages WHERE created_at < ?",
-      [cutoffMs],
-    );
+    const res = await this.db.run("DELETE FROM messages WHERE created_at < ?", [cutoffMs]);
     return res.meta.changes ?? 0;
   }
 }

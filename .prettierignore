@@ -1,0 +1,13 @@
+node_modules
+coverage
+.wrangler
+dist
+.forja-backup
+.forja-reports
+.forja-work
+member
+pnpm-lock.yaml
+como-funciona.html
+cli/bin/cli.js
+*.min.js
+*.min.css

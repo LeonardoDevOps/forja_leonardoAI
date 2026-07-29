@@ -26,13 +26,8 @@ export async function sendChunkedReply(
   interChunkDelayMs?: number,
 ): Promise<void> {
   // Default to a human-like, length-proportional pause between chunks.
-  const delay =
-    interChunkDelayMs ??
-    (chunks.length > 1 ? chunkDelayMs(chunks[0]) : undefined);
-  await adapter.sendReply(
-    { channel, channelUserId, chunks, interChunkDelayMs: delay },
-    env,
-  );
+  const delay = interChunkDelayMs ?? (chunks.length > 1 ? chunkDelayMs(chunks[0]) : undefined);
+  await adapter.sendReply({ channel, channelUserId, chunks, interChunkDelayMs: delay }, env);
 }
 
 export function pickAdapter(channel: ChannelId): ChannelAdapter {

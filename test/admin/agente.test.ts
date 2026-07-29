@@ -15,10 +15,7 @@ const PASSWORD = "secret123";
 
 function basicAuthHeader(user: string, pass: string): string {
   const raw = `${user}:${pass}`;
-  const b64 =
-    typeof btoa === "function"
-      ? btoa(raw)
-      : Buffer.from(raw, "utf-8").toString("base64");
+  const b64 = typeof btoa === "function" ? btoa(raw) : Buffer.from(raw, "utf-8").toString("base64");
   return `Basic ${b64}`;
 }
 
@@ -54,7 +51,14 @@ describe("Mi Agente — page and canvas", () => {
     expect(html).toContain("Modelo");
     expect(html).toContain("Memoria");
     // Pro tier: all six tools appear as nodes
-    for (const tool of ["searchKb", "handoffHuman", "pauseBot", "captureLead", "scheduleAppointment", "catalogQuery"]) {
+    for (const tool of [
+      "searchKb",
+      "handoffHuman",
+      "pauseBot",
+      "captureLead",
+      "scheduleAppointment",
+      "catalogQuery",
+    ]) {
       expect(html).toContain(tool);
     }
     // Buffer shows the effective seconds from env
@@ -109,11 +113,7 @@ describe("Mi Agente — tool toggle", () => {
     expect(await res.text()).toContain("Encender tool");
 
     // Toggle back on
-    res = await adminApp.request(
-      "/agente/tools/catalogQuery/toggle",
-      { method: "POST", headers: AUTH },
-      env,
-    );
+    res = await adminApp.request("/agente/tools/catalogQuery/toggle", { method: "POST", headers: AUTH }, env);
     expect(await settings.get(SETTING_KEYS.disabledTools)).toBe("");
     expect(await res.text()).toContain("Apagar tool");
   });
@@ -141,7 +141,11 @@ describe("Mi Agente — node save (modals)", () => {
   it("saves the buffer seconds with clamping", async () => {
     const res = await adminApp.request(
       "/agente/node/buffer/save",
-      { method: "POST", headers: { ...AUTH, "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ buffer_seconds: "12" }) },
+      {
+        method: "POST",
+        headers: { ...AUTH, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ buffer_seconds: "12" }),
+      },
       env,
     );
     expect(res.status).toBe(200);
@@ -152,7 +156,11 @@ describe("Mi Agente — node save (modals)", () => {
     // Out of range clamps to the max.
     await adminApp.request(
       "/agente/node/buffer/save",
-      { method: "POST", headers: { ...AUTH, "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ buffer_seconds: "999" }) },
+      {
+        method: "POST",
+        headers: { ...AUTH, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ buffer_seconds: "999" }),
+      },
       env,
     );
     expect(await settings.get(SETTING_KEYS.bufferSeconds)).toBe("60");
@@ -161,7 +169,11 @@ describe("Mi Agente — node save (modals)", () => {
   it("saves reply chunks and converts the delay from seconds to ms", async () => {
     await adminApp.request(
       "/agente/node/reply/save",
-      { method: "POST", headers: { ...AUTH, "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ max_chunks: "4", inter_chunk_delay_s: "1.5" }) },
+      {
+        method: "POST",
+        headers: { ...AUTH, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ max_chunks: "4", inter_chunk_delay_s: "1.5" }),
+      },
       env,
     );
     expect(await settings.get(SETTING_KEYS.maxChunks)).toBe("4");
@@ -171,7 +183,11 @@ describe("Mi Agente — node save (modals)", () => {
   it("saves model override and temperature", async () => {
     await adminApp.request(
       "/agente/node/model/save",
-      { method: "POST", headers: { ...AUTH, "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ model_override: "haiku", temperature: "0.3" }) },
+      {
+        method: "POST",
+        headers: { ...AUTH, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ model_override: "haiku", temperature: "0.3" }),
+      },
       env,
     );
     expect(await settings.get(SETTING_KEYS.modelOverride)).toBe("haiku");
@@ -181,7 +197,11 @@ describe("Mi Agente — node save (modals)", () => {
   it("rejects an invalid model override value", async () => {
     await adminApp.request(
       "/agente/node/model/save",
-      { method: "POST", headers: { ...AUTH, "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ model_override: "gpt-5" }) },
+      {
+        method: "POST",
+        headers: { ...AUTH, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ model_override: "gpt-5" }),
+      },
       env,
     );
     expect(await settings.get(SETTING_KEYS.modelOverride)).toBeNull();
@@ -190,7 +210,11 @@ describe("Mi Agente — node save (modals)", () => {
   it("brain: saves a manual prompt, then resets back to automatic", async () => {
     await adminApp.request(
       "/agente/node/brain/save",
-      { method: "POST", headers: { ...AUTH, "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ system_prompt_override: "MI PROMPT MANUAL" }) },
+      {
+        method: "POST",
+        headers: { ...AUTH, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ system_prompt_override: "MI PROMPT MANUAL" }),
+      },
       env,
     );
     expect(await settings.get(SETTING_KEYS.systemPromptOverride)).toBe("MI PROMPT MANUAL");
@@ -202,7 +226,11 @@ describe("Mi Agente — node save (modals)", () => {
     // Reset wins over the textarea content.
     await adminApp.request(
       "/agente/node/brain/save",
-      { method: "POST", headers: { ...AUTH, "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ action: "reset", system_prompt_override: "lo que sea" }) },
+      {
+        method: "POST",
+        headers: { ...AUTH, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ action: "reset", system_prompt_override: "lo que sea" }),
+      },
       env,
     );
     expect(await settings.get(SETTING_KEYS.systemPromptOverride)).toBe("");
@@ -211,7 +239,11 @@ describe("Mi Agente — node save (modals)", () => {
   it("brain: toggles the global pause", async () => {
     await adminApp.request(
       "/agente/node/brain/save",
-      { method: "POST", headers: { ...AUTH, "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ bot_paused: "1" }) },
+      {
+        method: "POST",
+        headers: { ...AUTH, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ bot_paused: "1" }),
+      },
       env,
     );
     expect(await settings.get(SETTING_KEYS.botPaused)).toBe("1");
@@ -222,7 +254,11 @@ describe("Mi Agente — node save (modals)", () => {
   it("unknown node id returns 404", async () => {
     const res = await adminApp.request(
       "/agente/node/bogus/save",
-      { method: "POST", headers: { ...AUTH, "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ x: "1" }) },
+      {
+        method: "POST",
+        headers: { ...AUTH, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ x: "1" }),
+      },
       env,
     );
     expect(res.status).toBe(404);

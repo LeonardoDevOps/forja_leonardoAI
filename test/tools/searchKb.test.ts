@@ -5,10 +5,18 @@ describe("searchKbTool", () => {
   it("returns top-k chunks with scores", async () => {
     const fakeEnv = {
       AI: { run: vi.fn(async () => ({ data: [[0.1, 0.2, 0.3]] })) },
-      KB: { query: vi.fn(async () => ({ matches: [
-        { id: "c1", score: 0.91, metadata: { title: "Embebar wall", content: "Pega <div data-tv-wall>...</div>" } },
-        { id: "c2", score: 0.78, metadata: { title: "Generar carrusel", content: "Ir a Distribuir..." } },
-      ] })) },
+      KB: {
+        query: vi.fn(async () => ({
+          matches: [
+            {
+              id: "c1",
+              score: 0.91,
+              metadata: { title: "Embebar wall", content: "Pega <div data-tv-wall>...</div>" },
+            },
+            { id: "c2", score: 0.78, metadata: { title: "Generar carrusel", content: "Ir a Distribuir..." } },
+          ],
+        })),
+      },
     } as any;
     const tool = searchKbTool(fakeEnv);
     const execute = tool.execute as (input: { query: string }) => Promise<any>;
@@ -21,7 +29,11 @@ describe("searchKbTool", () => {
   it("returns empty results when KB throws", async () => {
     const fakeEnv = {
       AI: { run: vi.fn(async () => ({ data: [[0.1, 0.2]] })) },
-      KB: { query: vi.fn(async () => { throw new Error("boom"); }) },
+      KB: {
+        query: vi.fn(async () => {
+          throw new Error("boom");
+        }),
+      },
     } as any;
     const tool = searchKbTool(fakeEnv);
     const execute = tool.execute as (input: { query: string }) => Promise<any>;

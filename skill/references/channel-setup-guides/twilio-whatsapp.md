@@ -40,12 +40,14 @@ Guarda los dos en un lugar seguro (los vas a pegar en una terminal en el Paso 6)
 Tienes dos opciones, según qué tan en serio vayas:
 
 **Opción A — Sandbox (para probar rápido y gratis):**
+
 1. En el menú de la izquierda ve a **Messaging → Try it out → Send a WhatsApp message**.
 2. Twilio te da un número de prueba (algo como `+1 415 523 8886`) y un código tipo `join algo-algo`.
 3. Desde tu WhatsApp personal, mándale ese mensaje (`join algo-algo`) al número de prueba para "unirte" al sandbox.
 4. Listo: ya puedes probar tu bot, pero **solo** con números que se hayan unido al sandbox.
 
 **Opción B — Número real de WhatsApp Business (para producción):**
+
 1. En el menú ve a **Messaging → Senders → WhatsApp senders**.
 2. Sigue el asistente para registrar tu número de negocio en WhatsApp. Twilio te pide conectar tu cuenta de **Meta / Facebook Business** y verificar el negocio.
 3. Este proceso tarda y requiere aprobación de Meta, así que empieza con el Sandbox para probar y pásate al número real cuando ya todo funcione.
@@ -65,6 +67,7 @@ Cuando un cliente pide hablar con una persona, el bot te manda un aviso **a ti p
    > 🔔 Un cliente necesita atención humana en {{1}}. Cliente: {{2}}. Resumen: {{3}}
 
    Aquí `{{1}}`, `{{2}}`, `{{3}}` son huecos que el bot rellena (nombre del negocio, nombre/número del cliente, resumen de la conversación).
+
 4. Manda la plantilla **a aprobación** (Submit for WhatsApp approval). Meta tarda desde unos minutos hasta unas horas en aprobarla.
 5. Cuando esté **Approved**, copia el **Content SID** de la plantilla. Empieza con **`HX...`**. Ese es el dato que el bot necesita.
 
@@ -211,13 +214,13 @@ En ManyChat, dentro de tu **Flow** o **Automation**, agrega una acción de tipo 
 
 ## Resumen — qué secret corresponde a cada canal
 
-| Canal | Secret(s) de wrangler | Para qué sirve |
-|---|---|---|
-| **Twilio WhatsApp** | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WA_FROM` | Credenciales y número desde el que responde el bot |
-| **Twilio WhatsApp (aviso a ti, Pro)** | `TWILIO_HANDOFF_CONTENT_SID`, `OWNER_WA_NUMBER` | Plantilla aprobada + tu número para recibir avisos |
-| **Telegram** | `TELEGRAM_BOT_TOKEN` | Token del bot creado con @BotFather |
-| **Telegram (aviso a ti)** | `OWNER_TELEGRAM_CHAT_ID` | Tu chat id para recibir DMs del bot |
-| **ManyChat** | `MANYCHAT_API_KEY` | Conexión con Instagram/Facebook/WhatsApp vía ManyChat |
+| Canal                                 | Secret(s) de wrangler                                       | Para qué sirve                                        |
+| ------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------- |
+| **Twilio WhatsApp**                   | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WA_FROM` | Credenciales y número desde el que responde el bot    |
+| **Twilio WhatsApp (aviso a ti, Pro)** | `TWILIO_HANDOFF_CONTENT_SID`, `OWNER_WA_NUMBER`             | Plantilla aprobada + tu número para recibir avisos    |
+| **Telegram**                          | `TELEGRAM_BOT_TOKEN`                                        | Token del bot creado con @BotFather                   |
+| **Telegram (aviso a ti)**             | `OWNER_TELEGRAM_CHAT_ID`                                    | Tu chat id para recibir DMs del bot                   |
+| **ManyChat**                          | `MANYCHAT_API_KEY`                                          | Conexión con Instagram/Facebook/WhatsApp vía ManyChat |
 
 ### URLs de webhook (por canal)
 

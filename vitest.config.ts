@@ -21,11 +21,20 @@ export default defineConfig({
     environment: "node",
     include: ["test/**/*.test.ts"],
     pool: "forks",
-    poolOptions: { forks: { singleFork: true } },
+    maxWorkers: 1,
+    // Several suites install module- and process-level mocks. Keep file
+    // isolation enabled so those test doubles cannot leak into other suites.
     // Most tests spin up a real Miniflare (workerd process + full D1 schema)
     // in beforeEach; under machine load that alone can blow the 5s default.
     // These are integration tests — give them real headroom.
     testTimeout: 30_000,
     hookTimeout: 30_000,
+    coverage: {
+      provider: "v8",
+      reportsDirectory: "coverage",
+      reporter: ["text", "json-summary", "html"],
+      include: ["src/**/*.ts"],
+      exclude: ["src/**/*.d.ts"],
+    },
   },
 });

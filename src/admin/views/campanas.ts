@@ -17,7 +17,7 @@ import {
 function esc(s: string): string {
   return s.replace(
     /[&<>"']/g,
-    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]!),
+    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!,
   );
 }
 
@@ -29,10 +29,7 @@ function fmtAgo(ms: number): string {
   return `hace ${Math.floor(h / 24)} d`;
 }
 
-export async function renderCampanas(
-  env: Env,
-  q: Record<string, string | undefined> = {},
-): Promise<string> {
+export async function renderCampanas(env: Env, q: Record<string, string | undefined> = {}): Promise<string> {
   const db = new Db(env.DB);
   const [counts, templates, spent, history] = await Promise.all([
     segmentCounts(db),

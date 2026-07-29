@@ -115,11 +115,7 @@ export function detectKind(payload: unknown): "audio" | "image" | "text" {
 // --- internal helpers -------------------------------------------------------
 
 /** Visit every leaf value, passing (value, key) where key is the last segment. */
-function walk(
-  node: unknown,
-  visit: (value: unknown, key: string | undefined) => void,
-  key?: string,
-): void {
+function walk(node: unknown, visit: (value: unknown, key: string | undefined) => void, key?: string): void {
   if (node == null) return;
   if (typeof node !== "object") {
     visit(node, key);

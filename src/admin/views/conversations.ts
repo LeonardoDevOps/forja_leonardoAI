@@ -52,7 +52,10 @@ const SENTIMENT_COLOR: Record<string, string> = {
 };
 
 function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+  return s.replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
+  );
 }
 
 function modelShort(modelId: string): string {
@@ -99,7 +102,12 @@ const statusBadge = (color: string) =>
 function initialsOf(label: string): string {
   const parts = label.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";
-  return parts.slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("") || "?";
+  return (
+    parts
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase() ?? "")
+      .join("") || "?"
+  );
 }
 
 /** WhatsApp gets info-blue, every other channel gets accent-2 amber — mirrors the mockup's WA/other split. */
@@ -167,27 +175,30 @@ export async function renderInboxList(env: Env, p: InboxParams): Promise<string>
     params,
   );
 
-  const items = rows
-    .map((r) => {
-      const paused = r.paused_until && r.paused_until > now;
-      const badges: string[] = [];
-      if (r.lead_count > 0) {
-        const b = LEAD_BADGE[r.lead_status as string] ?? LEAD_BADGE.new;
-        badges.push(`<span style="${smallPill(b.color)}">${b.txt}</span>`);
-      }
-      if (r.open_tickets > 0) badges.push(`<span style="${smallPill("var(--accent-2)")}">🔔</span>`);
-      if (paused) badges.push(`<span style="${smallPill("var(--dim)")}">⏸</span>`);
-      if (r.ai_sentiment === "frustrated" || r.ai_sentiment === "angry") {
-        const s = SENTIMENT_BADGE[r.ai_sentiment as string];
-        badges.push(`<span style="${smallPill(SENTIMENT_COLOR[r.ai_sentiment as string])}">${s.txt}</span>`);
-      }
-      const selected = r.id === p.selectedId;
-      const name = escapeHtml(r.display_name ?? r.channel_user_id ?? "—");
-      const preview = escapeHtml((r.last_msg ?? "").replace(/\s+/g, " ").slice(0, 60));
-      const initials = initialsOf(r.display_name ?? r.channel_user_id ?? "?");
-      const chanColor = channelColor(r.channel);
+  const items =
+    rows
+      .map((r) => {
+        const paused = r.paused_until && r.paused_until > now;
+        const badges: string[] = [];
+        if (r.lead_count > 0) {
+          const b = LEAD_BADGE[r.lead_status as string] ?? LEAD_BADGE.new;
+          badges.push(`<span style="${smallPill(b.color)}">${b.txt}</span>`);
+        }
+        if (r.open_tickets > 0) badges.push(`<span style="${smallPill("var(--accent-2)")}">🔔</span>`);
+        if (paused) badges.push(`<span style="${smallPill("var(--dim)")}">⏸</span>`);
+        if (r.ai_sentiment === "frustrated" || r.ai_sentiment === "angry") {
+          const s = SENTIMENT_BADGE[r.ai_sentiment as string];
+          badges.push(
+            `<span style="${smallPill(SENTIMENT_COLOR[r.ai_sentiment as string])}">${s.txt}</span>`,
+          );
+        }
+        const selected = r.id === p.selectedId;
+        const name = escapeHtml(r.display_name ?? r.channel_user_id ?? "—");
+        const preview = escapeHtml((r.last_msg ?? "").replace(/\s+/g, " ").slice(0, 60));
+        const initials = initialsOf(r.display_name ?? r.channel_user_id ?? "?");
+        const chanColor = channelColor(r.channel);
 
-      return `
+        return `
       <a href="${inboxUrl(p, r.id)}" class="convrow" style="display:flex;gap:11px;padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer;${selected ? "background:var(--panel2);border-left:2px solid var(--accent)" : "border-left:2px solid transparent"}">
         <div style="width:34px;height:34px;flex:none;background:var(--raise);border:1px solid var(--linelit);display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:var(--accent)">${initials}</div>
         <div style="min-width:0;flex:1">
@@ -200,8 +211,8 @@ export async function renderInboxList(env: Env, p: InboxParams): Promise<string>
           ${badges.length ? `<div style="display:flex;gap:5px;margin-top:6px;flex-wrap:wrap">${badges.join("")}</div>` : ""}
         </div>
       </a>`;
-    })
-    .join("") ||
+      })
+      .join("") ||
     `<div style="padding:32px 16px;text-align:center;font-size:12.5px;color:var(--dim)">Sin conversaciones${p.filter ? " con este filtro" : ""}.</div>`;
 
   return items;
@@ -212,7 +223,8 @@ export async function renderInboxList(env: Env, p: InboxParams): Promise<string>
 export async function renderThreadLive(env: Env, convId: string): Promise<string> {
   const db = new Db(env.DB);
   const conv = await db.first<any>("SELECT * FROM conversations WHERE id = ?", [convId]);
-  if (!conv) return `<div style="padding:24px;font-size:12.5px;color:var(--dim)">Conversación no encontrada.</div>`;
+  if (!conv)
+    return `<div style="padding:24px;font-size:12.5px;color:var(--dim)">Conversación no encontrada.</div>`;
 
   const insight = await new InsightsRepo(db).getByConversation(convId);
   const msgs = await db.all<any>(
@@ -223,10 +235,12 @@ export async function renderThreadLive(env: Env, convId: string): Promise<string
   const now = Date.now();
   const paused = conv.paused_until && conv.paused_until > now;
   const openTicket =
-    (await db.first<{ n: number }>(
-      "SELECT COUNT(*) as n FROM tickets WHERE conversation_id = ? AND status != 'resolved'",
-      [convId],
-    ))?.n ?? 0;
+    (
+      await db.first<{ n: number }>(
+        "SELECT COUNT(*) as n FROM tickets WHERE conversation_id = ? AND status != 'resolved'",
+        [convId],
+      )
+    )?.n ?? 0;
 
   // Header: identity + live state + takeover controls.
   const statusColor = paused ? "var(--accent-2)" : "var(--ok)";
@@ -271,7 +285,10 @@ export async function renderThreadLive(env: Env, convId: string): Promise<string
   const bubbles = msgs
     .map((m) => {
       const time = new Date(m.created_at).toLocaleString("es-MX", {
-        day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
       });
 
       // Tool chips (what the bot DID this turn) render above the bubble; in a
@@ -286,7 +303,9 @@ export async function renderThreadLive(env: Env, convId: string): Promise<string
             <div style="align-self:flex-end;display:inline-flex;align-items:center;gap:6px;font-size:10.5px;color:var(--dim);border:1px dashed var(--linelit);padding:3px 10px;margin-bottom:2px">→ <span style="color:var(--accent);font-weight:600">${escapeHtml(tc.toolName ?? "?")}</span> «${escapeHtml(toolInputSummary(tc.input))}»</div>`,
             )
             .join("");
-        } catch { /* legacy/malformed tool_calls JSON — skip chips */ }
+        } catch {
+          /* legacy/malformed tool_calls JSON — skip chips */
+        }
       }
 
       if (m.role === "user") {
@@ -369,20 +388,26 @@ export async function renderInbox(env: Env, p: InboxParams): Promise<string> {
   const totalConvs = (await db.first<{ n: number }>("SELECT COUNT(*) as n FROM conversations"))?.n ?? 0;
   const totalLeads = (await db.first<{ n: number }>("SELECT COUNT(*) as n FROM leads"))?.n ?? 0;
   const nMolestos =
-    (await db.first<{ n: number }>(
-      "SELECT COUNT(*) as n FROM conversation_insights WHERE sentiment IN ('frustrated','angry')",
-    ))?.n ?? 0;
+    (
+      await db.first<{ n: number }>(
+        "SELECT COUNT(*) as n FROM conversation_insights WHERE sentiment IN ('frustrated','angry')",
+      )
+    )?.n ?? 0;
   const nContentos =
-    (await db.first<{ n: number }>(
-      "SELECT COUNT(*) as n FROM conversation_insights WHERE sentiment = 'positive'",
-    ))?.n ?? 0;
+    (
+      await db.first<{ n: number }>(
+        "SELECT COUNT(*) as n FROM conversation_insights WHERE sentiment = 'positive'",
+      )
+    )?.n ?? 0;
   const needAttention =
-    (await db.first<{ n: number }>(
-      `SELECT COUNT(*) as n FROM conversations c
+    (
+      await db.first<{ n: number }>(
+        `SELECT COUNT(*) as n FROM conversations c
        WHERE (c.paused_until IS NOT NULL AND c.paused_until > ?)
           OR EXISTS (SELECT 1 FROM tickets t WHERE t.conversation_id = c.id AND t.status != 'resolved')`,
-      [now],
-    ))?.n ?? 0;
+        [now],
+      )
+    )?.n ?? 0;
 
   const filterPill = (href: string, label: string, active: boolean, color: string) =>
     `<a href="${href}" class="chip" style="font-size:11px;letter-spacing:.05em;padding:5px 12px;white-space:nowrap;border:1px solid ${color};${

@@ -44,17 +44,15 @@ afterEach(() => {
 
 describe("handoffHumanTool — owner WhatsApp notification (Pro)", () => {
   it("sends a Twilio WA message via Content Template (ContentSid, never free-text Body)", async () => {
-    fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ sid: "SMxxx" }), { status: 201 }),
-    );
+    fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response(JSON.stringify({ sid: "SMxxx" }), { status: 201 }));
     const tool = handoffHumanTool(env, () => convId);
     await tool.execute!(
       { reason: "complejo", summary: "cliente quiere reembolso", category: "billing" },
       {} as any,
     );
-    const twilioCall = fetchSpy.mock.calls.find((c: any[]) =>
-      String(c[0]).includes("api.twilio.com"),
-    );
+    const twilioCall = fetchSpy.mock.calls.find((c: any[]) => String(c[0]).includes("api.twilio.com"));
     expect(twilioCall).toBeTruthy();
     const body = String((twilioCall![1] as RequestInit).body);
     expect(body).toContain("ContentSid=HXtemplate"); // approved template, not Body
@@ -63,29 +61,19 @@ describe("handoffHumanTool — owner WhatsApp notification (Pro)", () => {
   });
 
   it("does NOT send WhatsApp when no approved template SID is configured", async () => {
-    fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response("{}", { status: 200 }),
-    );
-    const { TWILIO_HANDOFF_CONTENT_SID, ...noTemplate } = env;
+    fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 200 }));
+    const { TWILIO_HANDOFF_CONTENT_SID: _templateSid, ...noTemplate } = env;
     const tool = handoffHumanTool(noTemplate, () => convId);
-    const result = await tool.execute!(
-      { reason: "x", summary: "y", category: "other" },
-      {} as any,
-    );
+    const result = await tool.execute!({ reason: "x", summary: "y", category: "other" }, {} as any);
     expect((result as any).ticketId).toBeTruthy();
-    const twilioCall = fetchSpy.mock.calls.find((c: any[]) =>
-      String(c[0]).includes("api.twilio.com"),
-    );
+    const twilioCall = fetchSpy.mock.calls.find((c: any[]) => String(c[0]).includes("api.twilio.com"));
     expect(twilioCall).toBeUndefined();
   });
 
   it("still returns ticketId and swallows notification errors (no throw)", async () => {
     fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("twilio down"));
     const tool = handoffHumanTool(env, () => convId);
-    const result = await tool.execute!(
-      { reason: "x", summary: "y", category: "other" },
-      {} as any,
-    );
+    const result = await tool.execute!({ reason: "x", summary: "y", category: "other" }, {} as any);
     expect((result as any).ticketId).toBeTruthy();
   });
 });

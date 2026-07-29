@@ -8,7 +8,16 @@ export type Tier = "fast" | "smart";
 
 export const FRUSTRATION_KEYWORDS_BY_LANG: Record<string, string[]> = {
   es: ["no sirve", "no funciona", "está roto", "horrible", "una porquería", "qué basura", "harta", "harto"],
-  en: ["doesn't work", "doesnt work", "broken", "nothing works", "useless", "garbage", "frustrating", "ridiculous"],
+  en: [
+    "doesn't work",
+    "doesnt work",
+    "broken",
+    "nothing works",
+    "useless",
+    "garbage",
+    "frustrating",
+    "ridiculous",
+  ],
   pt: ["não funciona", "nao funciona", "horrível", "horrivel", "uma porcaria", "lixo"],
 };
 

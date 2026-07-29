@@ -56,23 +56,29 @@ describe("resolveEventTypeId", () => {
 
 describe("getAvailableSlots", () => {
   it("arma la URL, manda la versión correcta y aplana los slots", async () => {
-    const fetchMock = vi.fn(async (_url: any, _init: any) =>
-      new Response(
-        JSON.stringify({
-          status: "success",
-          data: {
-            "2026-07-20": [
-              { start: "2026-07-20T09:00:00.000-06:00" },
-              { start: "2026-07-20T10:00:00.000-06:00" },
-            ],
-          },
-        }),
-        { status: 200 },
-      ),
+    const fetchMock = vi.fn(
+      async (_url: any, _init: any) =>
+        new Response(
+          JSON.stringify({
+            status: "success",
+            data: {
+              "2026-07-20": [
+                { start: "2026-07-20T09:00:00.000-06:00" },
+                { start: "2026-07-20T10:00:00.000-06:00" },
+              ],
+            },
+          }),
+          { status: 200 },
+        ),
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const res = await getAvailableSlots(env({ CALCOM_API_KEY: "cal_x" }), 10, "2026-07-20", "America/Mexico_City");
+    const res = await getAvailableSlots(
+      env({ CALCOM_API_KEY: "cal_x" }),
+      10,
+      "2026-07-20",
+      "America/Mexico_City",
+    );
     expect(res.ok).toBe(true);
     if (res.ok) expect(res.slots).toEqual(["2026-07-20T09:00:00.000-06:00", "2026-07-20T10:00:00.000-06:00"]);
 
@@ -84,7 +90,10 @@ describe("getAvailableSlots", () => {
   });
 
   it("devuelve error si la API falla", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("nope", { status: 500 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("nope", { status: 500 })),
+    );
     const res = await getAvailableSlots(env({ CALCOM_API_KEY: "cal_x" }), 10, "2026-07-20", "UTC");
     expect(res.ok).toBe(false);
   });
@@ -100,8 +109,12 @@ describe("getAvailableSlots", () => {
 
 describe("createBooking", () => {
   it("hace POST con la versión de bookings y regresa el id", async () => {
-    const fetchMock = vi.fn(async (_url: any, _init: any) =>
-      new Response(JSON.stringify({ status: "success", data: { id: 555, uid: "abc", status: "accepted" } }), { status: 201 }),
+    const fetchMock = vi.fn(
+      async (_url: any, _init: any) =>
+        new Response(
+          JSON.stringify({ status: "success", data: { id: 555, uid: "abc", status: "accepted" } }),
+          { status: 201 },
+        ),
     );
     vi.stubGlobal("fetch", fetchMock);
 
@@ -127,7 +140,10 @@ describe("createBooking", () => {
   });
 
   it("error http → ok:false", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("bad", { status: 400 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("bad", { status: 400 })),
+    );
     const res = await createBooking(env({ CALCOM_API_KEY: "cal_x" }), {
       eventTypeId: 10,
       start: "2026-07-20T15:00:00Z",

@@ -133,7 +133,10 @@ describe("watchdog (checkBotHealth)", () => {
     const r = await checkBotHealth(env, now);
     expect(r).toEqual({ failures: 3, alerted: true });
     expect(notifyOwnerMock).toHaveBeenCalledTimes(1);
-    const [, notice] = notifyOwnerMock.mock.calls[0] as unknown[] as [Env, { reason: string; summary: string }];
+    const [, notice] = notifyOwnerMock.mock.calls[0] as unknown[] as [
+      Env,
+      { reason: string; summary: string },
+    ];
     expect(notice.reason).toBe("salud del bot");
     expect(notice.summary).toContain("3 respuestas fallidas");
   });

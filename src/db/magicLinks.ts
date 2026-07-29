@@ -22,18 +22,17 @@ export class MagicLinksRepo {
   async create(email: string): Promise<string> {
     const token = newToken();
     const now = Date.now();
-    await this.db.run(
-      "INSERT INTO magic_links (token, email, created_at, expires_at) VALUES (?, ?, ?, ?)",
-      [token, email.toLowerCase(), now, now + TOKEN_TTL_MS],
-    );
+    await this.db.run("INSERT INTO magic_links (token, email, created_at, expires_at) VALUES (?, ?, ?, ?)", [
+      token,
+      email.toLowerCase(),
+      now,
+      now + TOKEN_TTL_MS,
+    ]);
     return token;
   }
 
   async consume(token: string): Promise<MagicLink | null> {
-    const link = await this.db.first<MagicLink>(
-      "SELECT * FROM magic_links WHERE token = ?",
-      [token],
-    );
+    const link = await this.db.first<MagicLink>("SELECT * FROM magic_links WHERE token = ?", [token]);
     if (!link || link.used_at !== null) return null;
     if (link.expires_at < Date.now()) return null;
     await this.db.run("UPDATE magic_links SET used_at = ? WHERE token = ?", [Date.now(), token]);
@@ -41,10 +40,9 @@ export class MagicLinksRepo {
   }
 
   async purgeExpired(): Promise<number> {
-    const res = await this.db.run(
-      "DELETE FROM magic_links WHERE expires_at < ? OR used_at IS NOT NULL",
-      [Date.now()],
-    );
+    const res = await this.db.run("DELETE FROM magic_links WHERE expires_at < ? OR used_at IS NOT NULL", [
+      Date.now(),
+    ]);
     return res.meta.changes ?? 0;
   }
 }

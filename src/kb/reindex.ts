@@ -54,9 +54,7 @@ export async function reindexKb(
       indexed += vectors.length;
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      console.error(
-        `reindexKb: batch at offset ${start} (size ${batch.length}) failed: ${msg}`,
-      );
+      console.error(`reindexKb: batch at offset ${start} (size ${batch.length}) failed: ${msg}`);
       throw e;
     }
   }

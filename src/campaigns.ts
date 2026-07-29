@@ -40,7 +40,10 @@ export async function listContentTemplates(env: Env): Promise<ContentTemplate[]>
   return (data.contents ?? []).map((c) => {
     const types = c.types ?? {};
     const body: string =
-      types["twilio/text"]?.body ?? types["twilio/quick-reply"]?.body ?? types["twilio/call-to-action"]?.body ?? "";
+      types["twilio/text"]?.body ??
+      types["twilio/quick-reply"]?.body ??
+      types["twilio/call-to-action"]?.body ??
+      "";
     return {
       sid: c.sid as string,
       name: (c.friendly_name as string) ?? c.sid,
@@ -176,10 +179,7 @@ export async function sendCampaign(
 }
 
 /** "Hola {{1}}" + {"1":"Ana"} → "Hola Ana". null si no hay body. */
-export function renderTemplateBody(
-  body?: string,
-  variables?: Record<string, string>,
-): string | null {
+export function renderTemplateBody(body?: string, variables?: Record<string, string>): string | null {
   if (!body) return null;
   let out = body;
   for (const [k, v] of Object.entries(variables ?? {})) {
@@ -238,7 +238,6 @@ export async function campaignHistory(db: Db, limit = 15) {
   );
 }
 
-
 // ── Plantilla del handoff (aviso al dueño) ───────────────────────────────────
 
 export const HANDOFF_TEMPLATE_NAME = "handoff_aviso_dueno_v2";
@@ -290,7 +289,12 @@ export async function createHandoffTemplate(
   const appr = (await apprRes.json()) as { status?: string };
   // name+body en la respuesta = confirmación de QUÉ versión del código creó la
   // plantilla (un setup que corre antes de que propague un deploy crea la vieja).
-  return { sid: created.sid, approval: appr.status ?? `error ${apprRes.status}`, name: HANDOFF_TEMPLATE_NAME, body };
+  return {
+    sid: created.sid,
+    approval: appr.status ?? `error ${apprRes.status}`,
+    name: HANDOFF_TEMPLATE_NAME,
+    body,
+  };
 }
 
 /** Estado de aprobación de una plantilla (approved | pending | rejected…). */

@@ -26,16 +26,37 @@ export async function renderLeads(env: Env): Promise<string> {
   // Columnas: núcleo (fecha, nombre, contacto) + o bien las columnas del nicho
   // (leídas de metadata) o bien el "Resumen" genérico + estado (re-etiquetado).
   const cols: Col[] = [
-    { h: "Fecha", w: "94px", cell: (l) => `<span class="text-dim">${new Date(l.created_at).toLocaleDateString("es-MX")}</span>` },
-    { h: "Nombre", w: "minmax(120px,1.1fr)", cell: (l) => `<span class="text-cream" style="display:flex;align-items:center;gap:7px"><i data-lucide="chevron-right" width="13" height="13" class="chev" style="flex:none;transition:transform .12s ease"></i>${esc(l.name) || "(sin nombre)"}</span>` },
-    { h: "Contacto", w: "minmax(110px,1fr)", cell: (l) => `<span class="text-muted">${esc(l.contact) || "—"}</span>` },
+    {
+      h: "Fecha",
+      w: "94px",
+      cell: (l) => `<span class="text-dim">${new Date(l.created_at).toLocaleDateString("es-MX")}</span>`,
+    },
+    {
+      h: "Nombre",
+      w: "minmax(120px,1.1fr)",
+      cell: (l) =>
+        `<span class="text-cream" style="display:flex;align-items:center;gap:7px"><i data-lucide="chevron-right" width="13" height="13" class="chev" style="flex:none;transition:transform .12s ease"></i>${esc(l.name) || "(sin nombre)"}</span>`,
+    },
+    {
+      h: "Contacto",
+      w: "minmax(110px,1fr)",
+      cell: (l) => `<span class="text-muted">${esc(l.contact) || "—"}</span>`,
+    },
   ];
   if (niche.columns.length) {
     for (const c of niche.columns) {
-      cols.push({ h: c.label, w: "minmax(78px,.85fr)", cell: (_l, meta) => `<span class="text-muted truncate">${esc(meta[c.key]) || "—"}</span>` });
+      cols.push({
+        h: c.label,
+        w: "minmax(78px,.85fr)",
+        cell: (_l, meta) => `<span class="text-muted truncate">${esc(meta[c.key]) || "—"}</span>`,
+      });
     }
   } else {
-    cols.push({ h: "Resumen · click para ver detalle", w: "minmax(200px,1.8fr)", cell: (l) => `<span class="text-muted truncate">${esc(l.intent)}</span>` });
+    cols.push({
+      h: "Resumen · click para ver detalle",
+      w: "minmax(200px,1.8fr)",
+      cell: (l) => `<span class="text-muted truncate">${esc(l.intent)}</span>`,
+    });
   }
   cols.push({
     h: "Estado",
@@ -44,7 +65,9 @@ export async function renderLeads(env: Env): Promise<string> {
       <select name="status" onchange="this.form.submit()"
               style="width:100%;background:var(--bg);border:1px solid var(--line);color:var(--cream);padding:6px 8px;font-size:11px;outline:none;cursor:pointer">
         ${(["new", "contacted", "sold", "lost"] as const)
-          .map((s) => `<option ${l.status === s ? "selected" : ""} value="${s}">${esc(statusLabel(s))}</option>`)
+          .map(
+            (s) => `<option ${l.status === s ? "selected" : ""} value="${s}">${esc(statusLabel(s))}</option>`,
+          )
           .join("")}
       </select>
     </form>`,
@@ -64,7 +87,10 @@ export async function renderLeads(env: Env): Promise<string> {
         : `<span class="text-dim" style="font-size:11.5px">Sin conversación ligada</span>`;
       // Detalle: todos los campos del nicho (metadata) + resumen IA + notas.
       const metaRows = Object.entries(meta)
-        .map(([k, v]) => `<span class="text-muted" style="font-size:12px"><span class="text-dim">${esc(k)}:</span> ${esc(v)}</span>`)
+        .map(
+          ([k, v]) =>
+            `<span class="text-muted" style="font-size:12px"><span class="text-dim">${esc(k)}:</span> ${esc(v)}</span>`,
+        )
         .join("");
       return `<div class="lead" style="border-top:1px solid var(--line)">
         <div class="leadrow" onclick="var d=this.parentNode.querySelector('.lead-detail');var open=d.style.display==='block';d.style.display=open?'none':'block';this.querySelector('.chev').style.transform=open?'rotate(0deg)':'rotate(90deg)'"
@@ -78,10 +104,14 @@ export async function renderLeads(env: Env): Promise<string> {
               <div style="font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin-bottom:6px">Resumen de la IA</div>
               <div class="text-cream" style="font-size:13px;line-height:1.55;white-space:pre-wrap">${esc(l.intent)}</div>
             </div>
-            ${l.notes ? `<div>
+            ${
+              l.notes
+                ? `<div>
               <div style="font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin-bottom:6px">Notas</div>
               <div class="text-muted" style="font-size:12.5px;line-height:1.5;white-space:pre-wrap">${esc(l.notes)}</div>
-            </div>` : ""}
+            </div>`
+                : ""
+            }
             <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding-top:2px">
               ${convLink}
               <span class="text-dim" style="font-size:11.5px;display:inline-flex;align-items:center;gap:6px"><i data-lucide="clock" width="12" height="12"></i>${fullDate}</span>
@@ -93,9 +123,7 @@ export async function renderLeads(env: Env): Promise<string> {
     .join("");
 
   const empty = `<div style="padding:40px 18px;text-align:center" class="text-dim text-[12.5px]">Aún no hay ${esc(niche.recordPlural.toLowerCase())}.</div>`;
-  const header = cols
-    .map((c) => `<span>${esc(c.h)}</span>`)
-    .join("");
+  const header = cols.map((c) => `<span>${esc(c.h)}</span>`).join("");
 
   const body = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
@@ -119,10 +147,12 @@ export async function exportLeadsCsv(env: Env): Promise<string> {
   const leads = new LeadsRepo(new Db(env.DB));
   const list = await leads.list(10_000);
   const header = "fecha,nombre,contacto,intent,status,notas,metadata\n";
-  const rows = list.map((l) => {
-    const date = new Date(l.created_at).toISOString();
-    const esc = (v: string | null) => `"${(v ?? "").replace(/"/g, '""')}"`;
-    return `${date},${esc(l.name)},${esc(l.contact)},${esc(l.intent)},${l.status},${esc(l.notes)},${esc(l.metadata)}`;
-  }).join("\n");
+  const rows = list
+    .map((l) => {
+      const date = new Date(l.created_at).toISOString();
+      const esc = (v: string | null) => `"${(v ?? "").replace(/"/g, '""')}"`;
+      return `${date},${esc(l.name)},${esc(l.contact)},${esc(l.intent)},${l.status},${esc(l.notes)},${esc(l.metadata)}`;
+    })
+    .join("\n");
   return header + rows;
 }

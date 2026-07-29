@@ -37,11 +37,11 @@ const LABELS: Record<string, string> = {
   "channels-whatsapp-template-marketing": "Plantilla WhatsApp · marketing",
   "channels-whatsapp-template-utility": "Plantilla WhatsApp · utilidad",
   "phonenumbers-local": "Renta de número(s)",
-  "phonenumbers": "Renta de número(s)",
+  phonenumbers: "Renta de número(s)",
   "phonenumbers-mobile": "Renta de número(s) móvil",
   "smsmessages-outbound-domestic": "SMS salientes",
   "mms-outbound": "MMS salientes",
-  "recordings": "Grabaciones",
+  recordings: "Grabaciones",
 };
 
 function friendly(cat: string): string {

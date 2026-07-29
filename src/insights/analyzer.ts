@@ -99,10 +99,7 @@ const ROLE_LABEL: Record<string, string> = {
 function buildTranscript(msgs: { role: string; content: string }[]): string {
   return msgs
     .map((m) => {
-      const text =
-        m.content.length > MAX_MSG_CHARS
-          ? `${m.content.slice(0, MAX_MSG_CHARS)}…`
-          : m.content;
+      const text = m.content.length > MAX_MSG_CHARS ? `${m.content.slice(0, MAX_MSG_CHARS)}…` : m.content;
       return `${ROLE_LABEL[m.role] ?? m.role}: ${text}`;
     })
     .join("\n");
@@ -157,10 +154,7 @@ export function parseInsightJson(raw: string): z.infer<typeof insightSchema> | n
  * Grade pending conversations. Safe to call concurrently/repeatedly: upserts
  * by conversation_id and the batch `limit` caps cost per run.
  */
-export async function analyzeConversations(
-  env: Env,
-  opts: AnalyzeOptions = {},
-): Promise<AnalyzeResult> {
+export async function analyzeConversations(env: Env, opts: AnalyzeOptions = {}): Promise<AnalyzeResult> {
   const now = opts.now ?? Date.now();
   const limit = opts.limit ?? 10;
   const db = new Db(env.DB);

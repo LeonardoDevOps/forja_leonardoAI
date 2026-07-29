@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { telegramAdapter, resolveTelegramFileUrl } from "../../src/channels/telegram";
 import type { Env } from "../../src/env";
 
@@ -64,9 +64,7 @@ describe("telegramAdapter.parseIncoming", () => {
       env,
     );
     // The resolved URL is the downloadable HTTPS path, not the raw file_id.
-    expect(msg.audioUrl).toBe(
-      "https://api.telegram.org/file/bottest-token/voice/file_5.oga",
-    );
+    expect(msg.audioUrl).toBe("https://api.telegram.org/file/bottest-token/voice/file_5.oga");
   });
 
   it("resolves photos to a real download URL + uses caption as text", async () => {
@@ -88,9 +86,7 @@ describe("telegramAdapter.parseIncoming", () => {
       }),
       env,
     );
-    expect(msg.imageUrl).toBe(
-      "https://api.telegram.org/file/bottest-token/photos/file_9.jpg",
-    );
+    expect(msg.imageUrl).toBe("https://api.telegram.org/file/bottest-token/photos/file_9.jpg");
     expect(msg.text).toBe("mira esto");
   });
 

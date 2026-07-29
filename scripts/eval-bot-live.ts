@@ -96,18 +96,13 @@ export function parseJudgeVerdict(raw: string): JudgeVerdict {
   }
 
   const reason =
-    typeof record.reason === "string" && record.reason.trim() !== ""
-      ? record.reason.trim()
-      : "(sin razón)";
+    typeof record.reason === "string" && record.reason.trim() !== "" ? record.reason.trim() : "(sin razón)";
 
   return { passed: record.passed, reason };
 }
 
 /** Agrega resultados individuales en un resumen con pass-rate y umbral. */
-export function scoreResults(
-  results: EvalResult[],
-  threshold: number = DEFAULT_THRESHOLD,
-): EvalSummary {
+export function scoreResults(results: EvalResult[], threshold: number = DEFAULT_THRESHOLD): EvalSummary {
   const total = results.length;
   const passed = results.filter((r) => r.passed).length;
   const failed = total - passed;
@@ -158,11 +153,7 @@ export function summarize(summary: EvalSummary): string {
 // --- Capa con efectos (red). No se ejecuta al importar. ---
 
 /** Envía el mensaje del fixture al webhook de Telegram del bot desplegado. */
-async function sendToBot(
-  botUrl: string,
-  text: string,
-  chatId = 99_999,
-): Promise<void> {
+async function sendToBot(botUrl: string, text: string, chatId = 99_999): Promise<void> {
   const fakeUpdate = {
     update_id: Math.floor(Math.random() * 1_000_000),
     message: {
@@ -188,13 +179,8 @@ async function sendToBot(
  * El bot responde vía sendMessage; aquí leemos esos mensajes salientes.
  * Devuelve el último texto enviado a `chatId`, o "" si no hay.
  */
-async function fetchBotReply(
-  tgToken: string,
-  chatId = 99_999,
-): Promise<string> {
-  const res = await fetch(
-    `https://api.telegram.org/bot${tgToken}/getUpdates?limit=20`,
-  );
+async function fetchBotReply(tgToken: string, chatId = 99_999): Promise<string> {
+  const res = await fetch(`https://api.telegram.org/bot${tgToken}/getUpdates?limit=20`);
   if (!res.ok) return "";
   const data = (await res.json()) as {
     ok: boolean;
@@ -211,11 +197,7 @@ async function fetchBotReply(
 }
 
 /** Pide al juez Sonnet un veredicto sobre la respuesta del bot. */
-async function judgeOne(
-  model: LanguageModel,
-  fix: EvalFixture,
-  botReply: string,
-): Promise<JudgeVerdict> {
+async function judgeOne(model: LanguageModel, fix: EvalFixture, botReply: string): Promise<JudgeVerdict> {
   const { text } = await generateText({
     model,
     maxOutputTokens: 200,
@@ -237,17 +219,11 @@ async function main(): Promise<void> {
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
   const BOT_URL = process.env.BOT_URL;
   const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-  const threshold = process.env.EVAL_THRESHOLD
-    ? Number(process.env.EVAL_THRESHOLD)
-    : DEFAULT_THRESHOLD;
-  const waitMs = process.env.EVAL_WAIT_MS
-    ? Number(process.env.EVAL_WAIT_MS)
-    : DEFAULT_WAIT_MS;
+  const threshold = process.env.EVAL_THRESHOLD ? Number(process.env.EVAL_THRESHOLD) : DEFAULT_THRESHOLD;
+  const waitMs = process.env.EVAL_WAIT_MS ? Number(process.env.EVAL_WAIT_MS) : DEFAULT_WAIT_MS;
 
   if (!ANTHROPIC_KEY || !BOT_URL || !TG_TOKEN) {
-    console.error(
-      "Faltan env vars. Necesitas: ANTHROPIC_API_KEY, BOT_URL, TELEGRAM_BOT_TOKEN.",
-    );
+    console.error("Faltan env vars. Necesitas: ANTHROPIC_API_KEY, BOT_URL, TELEGRAM_BOT_TOKEN.");
     process.exit(1);
   }
 
@@ -278,9 +254,7 @@ async function main(): Promise<void> {
 }
 
 // Solo corre la red cuando este archivo es el entrypoint (no al importarlo en tests).
-const isEntrypoint =
-  typeof process.argv[1] === "string" &&
-  import.meta.url === `file://${process.argv[1]}`;
+const isEntrypoint = typeof process.argv[1] === "string" && import.meta.url === `file://${process.argv[1]}`;
 
 if (isEntrypoint) {
   main().catch((err) => {

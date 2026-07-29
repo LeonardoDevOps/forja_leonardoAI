@@ -56,7 +56,10 @@ export class KbDocsRepo {
 
 /** Split content into ~CHUNK_CHARS pieces on paragraph boundaries. */
 export function chunkContent(content: string): string[] {
-  const paras = content.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  const paras = content
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
   const chunks: string[] = [];
   let current = "";
   const push = () => {

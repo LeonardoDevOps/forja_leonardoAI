@@ -40,7 +40,12 @@ describe("TicketsRepo", () => {
 
   it("listOpen returns only open tickets", async () => {
     await repo.create({ conversationId: null, category: "x", summary: "a", transcript: "" });
-    const idResolved = await repo.create({ conversationId: null, category: "x", summary: "b", transcript: "" });
+    const idResolved = await repo.create({
+      conversationId: null,
+      category: "x",
+      summary: "b",
+      transcript: "",
+    });
     await repo.resolve(idResolved, "agente@x.com");
     const list = await repo.listOpen();
     expect(list).toHaveLength(1);

@@ -17,7 +17,7 @@ export function catalogQueryTool(_env: Env) {
           (p) =>
             p.name.toLowerCase().includes(q) ||
             (p.description?.toLowerCase().includes(q) ?? false) ||
-            (p.sku?.toLowerCase() === q),
+            p.sku?.toLowerCase() === q,
         )
         .slice(0, 5);
       return { matches };

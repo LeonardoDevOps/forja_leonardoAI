@@ -12,7 +12,7 @@ import { layout } from "./layout";
 function esc(s: string): string {
   return s.replace(
     /[&<>"']/g,
-    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]!),
+    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!,
   );
 }
 
@@ -84,8 +84,7 @@ export async function renderInsights(env: Env, analyzedParam?: string): Promise<
     countPending(env),
   ]);
 
-  const resolvedPct =
-    stats.analyzed > 0 ? Math.round((stats.resolvedNoHuman / stats.analyzed) * 100) : null;
+  const resolvedPct = stats.analyzed > 0 ? Math.round((stats.resolvedNoHuman / stats.analyzed) * 100) : null;
 
   const analyzedBanner =
     analyzedParam != null
@@ -106,9 +105,13 @@ export async function renderInsights(env: Env, analyzedParam?: string): Promise<
       ${statCard(String(stats.analyzed), "Conversaciones analizadas", "últimos 7 días")}
       ${statCard(resolvedPct === null ? "—" : `${resolvedPct}%`, "Resueltas sin humano", "", "border-l-ok")}
       ${statCard(
-        stats.avgScore === null ? "—" : `${stats.avgScore.toFixed(1)}<span class="text-[16px] text-dim">/5</span>`,
+        stats.avgScore === null
+          ? "—"
+          : `${stats.avgScore.toFixed(1)}<span class="text-[16px] text-dim">/5</span>`,
         "Calidad del bot",
-        stats.avgScore === null ? "" : "★".repeat(Math.round(stats.avgScore)) + "☆".repeat(5 - Math.round(stats.avgScore)),
+        stats.avgScore === null
+          ? ""
+          : "★".repeat(Math.round(stats.avgScore)) + "☆".repeat(5 - Math.round(stats.avgScore)),
       )}
       ${statCard(String(stats.negative), stats.negative > 0 ? "⚠ Clientes molestos" : "Clientes molestos", "", stats.negative > 0 ? "border-l-bad" : "")}
     </div>`;

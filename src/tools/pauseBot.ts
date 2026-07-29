@@ -6,8 +6,7 @@ import { ConversationsRepo } from "../db/conversations";
 
 export function pauseBotTool(env: Env, getConversationId: () => string | null) {
   return tool({
-    description:
-      "Pausa el bot para esta conversación por N minutos. El dueño humano tomará el control.",
+    description: "Pausa el bot para esta conversación por N minutos. El dueño humano tomará el control.",
     inputSchema: z.object({
       minutes: z.number().int().min(5).max(1440).default(60),
       reason: z.string().optional(),

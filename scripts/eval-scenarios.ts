@@ -49,11 +49,7 @@ export const evalScenarios: EvalScenario[] = scenariosJson as unknown as EvalSce
 
 /** All distinct tool names referenced by the scenarios (excludes null). */
 export const expectedTools: string[] = [
-  ...new Set(
-    evalScenarios
-      .map((s) => s.expectedToolCall)
-      .filter((t): t is string => t !== null),
-  ),
+  ...new Set(evalScenarios.map((s) => s.expectedToolCall).filter((t): t is string => t !== null)),
 ].sort();
 
 export function scenariosByLang(lang: EvalLang): EvalScenario[] {
