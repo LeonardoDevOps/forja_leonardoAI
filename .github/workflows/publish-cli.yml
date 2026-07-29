@@ -23,20 +23,21 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       id-token: write # imprescindible: es lo que prueba ante npm quién publica
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
 
       # Trusted Publishing necesita npm 11.5.1 o superior.
       - name: Actualizar npm
-        run: npm install -g npm@latest
+        run: npm install -g npm@11.18.0
 
       # El CLI no tiene dependencias: no hay install que hacer. Solo validamos
       # que el archivo que se va a publicar sea JavaScript sintácticamente sano.
