@@ -18,6 +18,17 @@ let env: any;
 let convId: string;
 let fetchSpy: any;
 
+function isTwilioApiCall(call: unknown[]): boolean {
+  try {
+    const input = call[0];
+    const value = input instanceof Request ? input.url : String(input);
+    const url = new URL(value);
+    return url.protocol === "https:" && url.hostname === "api.twilio.com";
+  } catch {
+    return false;
+  }
+}
+
 beforeEach(async () => {
   const mf = await createTestMiniflare();
   const d1 = await mf.getD1Database("DB");
@@ -52,7 +63,7 @@ describe("handoffHumanTool — owner WhatsApp notification (Pro)", () => {
       { reason: "complejo", summary: "cliente quiere reembolso", category: "billing" },
       {} as any,
     );
-    const twilioCall = fetchSpy.mock.calls.find((c: any[]) => String(c[0]).includes("api.twilio.com"));
+    const twilioCall = fetchSpy.mock.calls.find(isTwilioApiCall);
     expect(twilioCall).toBeTruthy();
     const body = String((twilioCall![1] as RequestInit).body);
     expect(body).toContain("ContentSid=HXtemplate"); // approved template, not Body
@@ -66,7 +77,7 @@ describe("handoffHumanTool — owner WhatsApp notification (Pro)", () => {
     const tool = handoffHumanTool(noTemplate, () => convId);
     const result = await tool.execute!({ reason: "x", summary: "y", category: "other" }, {} as any);
     expect((result as any).ticketId).toBeTruthy();
-    const twilioCall = fetchSpy.mock.calls.find((c: any[]) => String(c[0]).includes("api.twilio.com"));
+    const twilioCall = fetchSpy.mock.calls.find(isTwilioApiCall);
     expect(twilioCall).toBeUndefined();
   });
 
