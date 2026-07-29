@@ -20,6 +20,7 @@
 - **Depende de**: ninguno
 - **Categoría**: migration, security
 - **Planificado en**: commit `c9025b9`, 2026-07-29
+- **Resultado**: COMPLETADO en `advisor/005-006-agents-media-security`
 
 ## Por qué importa
 
@@ -272,17 +273,18 @@ auditoría puede salir 1 solo por residuales documentados sin solución compatib
 
 ## Criterios de terminado
 
-- [ ] `package.json` y `pnpm-lock.yaml` resuelven `agents 0.3.10`.
-- [ ] Los tres GHSA directos de `agents` ya no aparecen en la auditoría.
-- [ ] `rg -n "cf_agents_schedules|ctx\.storage\.setAlarm" src/agent.ts` no
+- [x] `package.json` y `pnpm-lock.yaml` resuelven `agents 0.3.10`.
+- [x] Los tres GHSA directos de `agents` ya no aparecen en la auditoría.
+- [x] `rg -n "cf_agents_schedules|ctx\.storage\.setAlarm" src/agent.ts` no
       devuelve coincidencias.
-- [ ] Las pruebas prueban debounce y pausa a través del API público.
-- [ ] `corepack pnpm@10.34.5 typecheck`, tests focales, `check` y
+- [x] Las pruebas prueban debounce y pausa a través del API público.
+- [x] `corepack pnpm@10.34.5 typecheck`, tests focales, `check` y
       `test:coverage` terminan en exit 0.
-- [ ] Cada vulnerabilidad residual tiene paquete, ruta, alcanzabilidad,
+- [x] Cada vulnerabilidad residual tiene paquete, ruta, alcanzabilidad,
       mitigación y seguimiento; no se declara falsamente resuelta.
-- [ ] No se añadieron peers opcionales sin uso.
-- [ ] Solo cambiaron archivos de alcance y `plans/README.md` marca el plan
+- [x] No se añadieron peers opcionales sin uso.
+- [x] Los cambios combinados de 005+006 están documentados y
+      `plans/README.md` marca el plan
       como completado.
 
 ## Condiciones de parada

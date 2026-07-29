@@ -26,8 +26,8 @@ condiciones de parada y actualizar aquí su estado.
 | 002 | [Tests, cobertura y seguridad del código](./002-tests-cobertura-seguridad.md)    |        P0 | Completado | 001           |
 | 003 | [CI y supply chain](./003-ci-supply-chain.md)                                    |        P0 | Completado | 001, 002      |
 | 004 | [Documentación, validación y entrega](./004-documentacion-validacion-entrega.md) |        P0 | Completado | 001, 002, 003 |
-| 005 | [Migrar `agents` 0.3.x y supply chain](./005-migrar-agents-0-3-supply-chain.md)  |        P1 | TODO       | Ninguna       |
-| 006 | [Endurecer egress de medios y DNS](./006-endurecer-egress-medios-dns.md)         |        P1 | TODO       | Ninguna       |
+| 005 | [Migrar `agents` 0.3.x y supply chain](./005-migrar-agents-0-3-supply-chain.md)  |        P1 | Completado | Ninguna       |
+| 006 | [Endurecer egress de medios y DNS](./006-endurecer-egress-medios-dns.md)         |        P1 | Completado | Ninguna       |
 | 007 | [Eliminar los 33 avisos ESLint](./007-eliminar-avisos-eslint.md)                 |        P1 | TODO       | 005, 006      |
 | 008 | [Elevar cobertura administrativa](./008-elevar-cobertura-admin.md)               |        P2 | TODO       | Ninguna       |
 
@@ -54,6 +54,41 @@ Estados permitidos para los planes pendientes: `TODO`, `EN PROGRESO`,
   residual explícito.
 - No se persigue cobertura mediante snapshots o exclusiones: se prueban
   estados, datos, errores y escapes, con umbral por archivo.
+
+## Resultado de los planes 005 y 006
+
+Implementados el 2026-07-29 en la rama combinada
+`advisor/005-006-agents-media-security`. Se usó una sola rama porque ambos
+planes fueron solicitados juntos y comparten `agent.ts`, pruebas y
+documentación; se conservaron commits temáticos separados.
+
+- `agents` pasó de 0.1.6 a 0.3.10 y su peer obligatorio React quedó en 19.0.0.
+- El debounce usa `getSchedules`, `cancelSchedule` y `schedule`; no escribe
+  `cf_agents_schedules` ni llama directamente a alarmas de storage.
+- Wrangler pasó de 4.86.0 a 4.105.0 y el lockfile se deduplicó en
+  `esbuild 0.28.1`.
+- La auditoría pasó de 6 moderadas + 5 bajas a 1 alta + 1 moderada, sin bajas.
+  Desaparecieron los tres avisos directos de `agents`, `uuid`, `x402`, el
+  `ai` antiguo y los avisos de `esbuild`.
+- Residual alto: `agents 0.3.10` fija
+  `@modelcontextprotocol/sdk 1.25.2`; `GHSA-345p-7cg4-v4c7` se corrige en 1.26.0.
+  Forja no crea servidores/clientes MCP ni reutiliza transports entre clientes,
+  por lo que la ruta vulnerable no está activa. No se fuerza 1.26.0 fuera del
+  pin exacto del SDK. Revisar antes del 2026-08-29 o cuando Cloudflare publique
+  una versión compatible.
+- Residual moderado: ese MCP admite `@hono/node-server 1.19.17`;
+  `GHSA-frvp-7c67-39w9` requiere 2.0.5. Forja produce un Worker y no usa
+  `serve-static` del adaptador Node en producción. No se fuerza la major 2.
+  Revisar en la misma fecha.
+- Los medios usan hostnames exactos por canal. `MEDIA_ALLOWED_HOSTS` solo
+  habilita CDNs variables; comodines, URLs, puertos, hosts locales y redirects
+  no autorizados se rechazan.
+- Riesgo DNS residual: un hostname aprobado comprometido todavía necesita un
+  egress confiable para garantizar IP/ASN. Está documentado en README y
+  SECURITY.
+- Validación: instalación congelada, formato, tipos, 469 tests, cobertura
+  (72,90% líneas globales), pruebas focales y diff pasaron. ESLint conserva los
+  33 avisos inventariados para el plan 007.
 
 ## Línea base confirmada
 

@@ -16,6 +16,7 @@
 - **Depende de**: ninguno
 - **Categoría**: security
 - **Planificado en**: commit `c9025b9`, 2026-07-29
+- **Resultado**: COMPLETADO en `advisor/005-006-agents-media-security`
 
 ## Por qué importa
 
@@ -253,16 +254,16 @@ archivos de alcance.
 
 ## Criterios de terminado
 
-- [ ] No existe llamada a `assertSafeExternalMediaUrl` o
+- [x] No existe llamada a `assertSafeExternalMediaUrl` o
       `fetchSafeExternalMedia` sin política explícita.
-- [ ] Un hostname público arbitrario se rechaza por defecto.
-- [ ] Todos los redirects se validan contra la misma lista exacta.
-- [ ] ManyChat/learned requieren una aprobación explícita para hosts variables.
-- [ ] Audio e imagen rechazada no producen fetch ni exposición de URL firmada.
-- [ ] `check` y `test:coverage` pasan.
-- [ ] README y SECURITY explican la configuración y el residual.
-- [ ] No se modificaron `wrangler.toml`, `member/` ni secretos.
-- [ ] `plans/README.md` marca el plan como completado.
+- [x] Un hostname público arbitrario se rechaza por defecto.
+- [x] Todos los redirects se validan contra la misma lista exacta.
+- [x] ManyChat/learned requieren una aprobación explícita para hosts variables.
+- [x] Audio e imagen rechazada no producen fetch ni exposición de URL firmada.
+- [x] `check` y `test:coverage` pasan.
+- [x] README y SECURITY explican la configuración y el residual.
+- [x] No se modificaron `wrangler.toml`, `member/` ni secretos.
+- [x] `plans/README.md` marca el plan como completado.
 
 ## Condiciones de parada
 
