@@ -161,20 +161,19 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
       return { acknowledged: true };
     }
 
-    // Schedule buffer processing via the agents SDK scheduler.
-    // The SDK overrides alarm() to dispatch named callbacks from its
-    // cf_agents_schedules table, so raw ctx.storage.setAlarm() alone won't
-    // invoke our code. We upsert a fixed 'msg-buffer' row (so rapid messages
-    // debounce to a single fire) and set the raw alarm as the trigger.
+    // Schedule buffer processing via the agents SDK public scheduler. Cancel
+    // every previous delayed processBuffer task first so rapid messages
+    // debounce to a single execution without depending on the SDK's private
+    // SQLite schema.
+    const pendingBufferSchedules = this.getSchedules({ type: "delayed" }).filter(
+      (schedule) => schedule.callback === "processBuffer",
+    );
+    for (const schedule of pendingBufferSchedules) {
+      await this.cancelSchedule(schedule.id);
+    }
+
     const alarmAt = Date.now() + cfg.bufferMs;
-    const alarmAtSec = Math.floor(alarmAt / 1000);
-    void this.sql`
-      INSERT OR REPLACE INTO cf_agents_schedules
-        (id, callback, payload, type, time, created_at)
-      VALUES
-        ('msg-buffer', 'processBuffer', '{}', 'delayed', ${alarmAtSec}, unixepoch())
-    `;
-    await this.ctx.storage.setAlarm(alarmAt);
+    await this.schedule(cfg.bufferMs / 1000, "processBuffer", {});
     this.setState({ ...this.state, lastAlarmAt: alarmAt });
 
     return { acknowledged: true };

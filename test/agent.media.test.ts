@@ -13,6 +13,13 @@ vi.mock("agents", () => ({
     ctx: any;
     env: any;
     state: any;
+    schedules: Array<{
+      id: string;
+      callback: string;
+      payload: unknown;
+      type: "delayed";
+      time: number;
+    }> = [];
     constructor(ctx: any, env: any) {
       this.ctx = ctx;
       this.env = env;
@@ -20,10 +27,26 @@ vi.mock("agents", () => ({
     setState(s: any) {
       this.state = s;
     }
-    // Tagged-template stub: ingest() upserts into cf_agents_schedules via this.sql
-    sql(..._args: any[]) {
-      return undefined;
-    }
+    getSchedules = vi.fn((criteria?: { type?: string }) =>
+      this.schedules.filter((schedule) => !criteria?.type || schedule.type === criteria.type),
+    );
+    cancelSchedule = vi.fn(async (id: string) => {
+      const index = this.schedules.findIndex((schedule) => schedule.id === id);
+      if (index === -1) return false;
+      this.schedules.splice(index, 1);
+      return true;
+    });
+    schedule = vi.fn(async (when: number, callback: string, payload: unknown) => {
+      const scheduled = {
+        id: `schedule-${this.schedules.length + 1}`,
+        callback,
+        payload,
+        type: "delayed" as const,
+        time: Math.floor(Date.now() / 1000) + when,
+      };
+      this.schedules.push(scheduled);
+      return scheduled;
+    });
   },
 }));
 
@@ -319,7 +342,7 @@ describe("SupportAgent.ingest — bot_paused (settings)", () => {
 
   it("buffers the client message but does NOT arm the alarm when bot_paused=1", async () => {
     stubSettings({ bot_paused: "1" });
-    const { agent, storage } = makeAgent({ tier: "free" });
+    const { agent } = makeAgent({ tier: "free" });
     stubConversations();
 
     await agent.ingest({
@@ -331,14 +354,17 @@ describe("SupportAgent.ingest — bot_paused (settings)", () => {
     // Message is persisted in the buffer …
     expect(agent.state.pendingMessages).toHaveLength(1);
     expect(agent.state.pendingMessages[0].text).toBe("hola, estoy pausado?");
-    // … but the bot stays silent: no alarm scheduled.
-    expect(storage.setAlarm).not.toHaveBeenCalled();
+    // … but the bot stays silent: the scheduler is never consulted.
+    expect(agent.getSchedules).not.toHaveBeenCalled();
+    expect(agent.cancelSchedule).not.toHaveBeenCalled();
+    expect(agent.schedule).not.toHaveBeenCalled();
   });
 
-  it("arms the alarm when bot is not paused", async () => {
+  it("schedules processBuffer with the configured delay when the bot is active", async () => {
     stubSettings();
-    const { agent, storage } = makeAgent({ tier: "free" });
+    const { agent } = makeAgent({ tier: "free" });
     stubConversations();
+    const before = Date.now();
 
     await agent.ingest({
       channel: "telegram",
@@ -346,6 +372,55 @@ describe("SupportAgent.ingest — bot_paused (settings)", () => {
       text: "hola",
     });
 
-    expect(storage.setAlarm).toHaveBeenCalledTimes(1);
+    expect(agent.getSchedules).toHaveBeenCalledWith({ type: "delayed" });
+    expect(agent.cancelSchedule).not.toHaveBeenCalled();
+    expect(agent.schedule).toHaveBeenCalledWith(8, "processBuffer", {});
+    expect(agent.state.lastAlarmAt).toBeGreaterThanOrEqual(before + 8_000);
+    expect(agent.state.lastAlarmAt).toBeLessThanOrEqual(Date.now() + 8_000);
+  });
+
+  it("cancels every stale processBuffer schedule but preserves other callbacks", async () => {
+    stubSettings();
+    const { agent } = makeAgent({ tier: "free" });
+    stubConversations();
+    agent.schedules.push(
+      {
+        id: "old-buffer-1",
+        callback: "processBuffer",
+        payload: {},
+        type: "delayed",
+        time: 1,
+      },
+      {
+        id: "other-task",
+        callback: "someOtherCallback",
+        payload: {},
+        type: "delayed",
+        time: 2,
+      },
+      {
+        id: "old-buffer-2",
+        callback: "processBuffer",
+        payload: {},
+        type: "delayed",
+        time: 3,
+      },
+    );
+
+    await agent.ingest({
+      channel: "telegram",
+      channelUserId: "u1",
+      text: "reinicia el debounce",
+    });
+
+    expect(agent.cancelSchedule.mock.calls.map(([id]: [string]) => id)).toEqual([
+      "old-buffer-1",
+      "old-buffer-2",
+    ]);
+    expect(agent.schedules.some((schedule: { id: string }) => schedule.id === "other-task")).toBe(true);
+    expect(
+      agent.schedules.filter((schedule: { callback: string }) => schedule.callback === "processBuffer"),
+    ).toHaveLength(1);
+    expect(agent.schedule).toHaveBeenCalledTimes(1);
   });
 });
