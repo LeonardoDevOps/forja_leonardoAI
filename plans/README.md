@@ -28,7 +28,7 @@ condiciones de parada y actualizar aquí su estado.
 | 004 | [Documentación, validación y entrega](./004-documentacion-validacion-entrega.md) |        P0 | Completado | 001, 002, 003 |
 | 005 | [Migrar `agents` 0.3.x y supply chain](./005-migrar-agents-0-3-supply-chain.md)  |        P1 | Completado | Ninguna       |
 | 006 | [Endurecer egress de medios y DNS](./006-endurecer-egress-medios-dns.md)         |        P1 | Completado | Ninguna       |
-| 007 | [Eliminar los 33 avisos ESLint](./007-eliminar-avisos-eslint.md)                 |        P1 | TODO       | 005, 006      |
+| 007 | [Eliminar los 33 avisos ESLint](./007-eliminar-avisos-eslint.md)                 |        P1 | COMPLETADO | 005, 006      |
 | 008 | [Elevar cobertura administrativa](./008-elevar-cobertura-admin.md)               |        P2 | TODO       | Ninguna       |
 
 Estados permitidos para los planes pendientes: `TODO`, `EN PROGRESO`,
@@ -89,6 +89,24 @@ documentación; se conservaron commits temáticos separados.
 - Validación: instalación congelada, formato, tipos, 469 tests, cobertura
   (72,90% líneas globales), pruebas focales y diff pasaron. ESLint conserva los
   33 avisos inventariados para el plan 007.
+
+## Resultado del plan 007
+
+Implementado el 2026-07-29 en la rama `advisor/007-zero-eslint-warnings`, creada
+sobre los planes 005 y 006 completados.
+
+- Los 33 avisos `@typescript-eslint/no-explicit-any` fueron eliminados sin
+  supresiones ni exclusiones nuevas.
+- Las respuestas JSON, resultados de Workers AI y excepciones externas se
+  tratan como `unknown` y se validan antes de leer propiedades.
+- El bucle del agente usa `ModelMessage` y `LanguageModel` de AI SDK 6; las
+  llamadas a herramientas conservan la inferencia de `streamText`.
+- `@typescript-eslint/no-explicit-any` es error en producción y permanece
+  desactivada únicamente para los dobles de `test/**/*.ts`.
+- El script `lint` usa `eslint . --max-warnings 0`, por lo que cualquier aviso
+  nuevo hace fallar CI.
+- Validación: 11 archivos focales y 76 pruebas pasaron; `check:ci` completó
+  formato, lint, tipos y 482 pruebas con cobertura global de 73,81% de líneas.
 
 ## Línea base confirmada
 

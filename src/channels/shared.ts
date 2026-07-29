@@ -1,3 +1,5 @@
+import type { Env } from "../env";
+
 export type ChannelId = "manychat" | "telegram" | "twilio" | "messenger" | "instagram" | "whatsapp";
 
 export interface IncomingMessage {
@@ -20,7 +22,7 @@ export interface OutgoingReply {
 }
 
 export interface ChannelAdapter {
-  parseIncoming(request: Request, env: any): Promise<IncomingMessage>;
-  sendReply(reply: OutgoingReply, env: any): Promise<void>;
-  showTyping?(channelUserId: string, env: any): Promise<void>;
+  parseIncoming(request: Request, env: Env): Promise<IncomingMessage>;
+  sendReply(reply: OutgoingReply, env: Env): Promise<void>;
+  showTyping?(channelUserId: string, env: Env): Promise<void>;
 }

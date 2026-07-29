@@ -8,6 +8,16 @@ export interface SearchKbResult {
   score: number;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (isRecord(error) && typeof error.message === "string") return error.message;
+  return String(error);
+}
+
 export function searchKbTool(env: Env) {
   return tool({
     description:
@@ -17,22 +27,23 @@ export function searchKbTool(env: Env) {
     }),
     execute: async ({ query }) => {
       try {
-        const embedding = await env.AI.run("@cf/baai/bge-m3", {
+        const embedding: unknown = await env.AI.run("@cf/baai/bge-m3", {
           text: query,
         });
-        const vec = (embedding as any).data?.[0];
-        if (!Array.isArray(vec)) {
+        const data = isRecord(embedding) ? embedding.data : undefined;
+        const vec = Array.isArray(data) ? data[0] : undefined;
+        if (!Array.isArray(vec) || !vec.every((value) => typeof value === "number")) {
           return { error: "transient" as const, message: "embedding shape unexpected" };
         }
         const matches = await env.KB.query(vec, { topK: 5 });
-        const results: SearchKbResult[] = (matches.matches ?? []).map((m: any) => ({
-          title: (m.metadata?.title as string) ?? "",
-          content: (m.metadata?.content as string) ?? "",
-          score: m.score ?? 0,
+        const results: SearchKbResult[] = (matches.matches ?? []).map((match) => ({
+          title: typeof match.metadata?.title === "string" ? match.metadata.title : "",
+          content: typeof match.metadata?.content === "string" ? match.metadata.content : "",
+          score: match.score ?? 0,
         }));
         return { results };
-      } catch (e: any) {
-        return { error: "transient" as const, message: String(e?.message ?? e) };
+      } catch (error: unknown) {
+        return { error: "transient" as const, message: errorMessage(error) };
       }
     },
   });

@@ -21,6 +21,53 @@ export { SupportAgent } from "./agent";
 
 const app = new Hono<{ Bindings: Env }>();
 
+type MetaWebhookBody = Parameters<typeof parseMetaEvents>[0];
+type WhatsAppWebhookBody = Parameters<typeof parseWhatsAppEvents>[0];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function hasRecordArray(value: unknown): value is Record<string, unknown>[] | undefined {
+  return value === undefined || (Array.isArray(value) && value.every(isRecord));
+}
+
+function validatedMetaBody(value: unknown): MetaWebhookBody | null {
+  if (!isRecord(value) || (value.object !== undefined && typeof value.object !== "string")) return null;
+  if (!hasRecordArray(value.entry)) return null;
+  for (const entry of value.entry ?? []) {
+    if (!hasRecordArray(entry.messaging)) return null;
+    for (const event of entry.messaging ?? []) {
+      if (event.sender !== undefined && !isRecord(event.sender)) return null;
+      if (event.message !== undefined && !isRecord(event.message)) return null;
+      if (isRecord(event.message) && !hasRecordArray(event.message.attachments)) return null;
+    }
+  }
+  return value as MetaWebhookBody;
+}
+
+function validatedWhatsAppBody(value: unknown): WhatsAppWebhookBody | null {
+  if (!isRecord(value) || (value.object !== undefined && typeof value.object !== "string")) return null;
+  if (!hasRecordArray(value.entry)) return null;
+  for (const entry of value.entry ?? []) {
+    if (!hasRecordArray(entry.changes)) return null;
+    for (const change of entry.changes ?? []) {
+      if (change.value !== undefined && !isRecord(change.value)) return null;
+      if (!isRecord(change.value)) continue;
+      if (!hasRecordArray(change.value.contacts) || !hasRecordArray(change.value.messages)) return null;
+      for (const contact of change.value.contacts ?? []) {
+        if (contact.profile !== undefined && !isRecord(contact.profile)) return null;
+      }
+      for (const message of change.value.messages ?? []) {
+        for (const field of ["text", "image", "audio"] as const) {
+          if (message[field] !== undefined && !isRecord(message[field])) return null;
+        }
+      }
+    }
+  }
+  return value as WhatsAppWebhookBody;
+}
+
 app.get("/health", (c) => c.text("ok", 200));
 
 // Parse the provider payload via the channel adapter, derive the per-user DO id
@@ -51,8 +98,8 @@ async function routeToAgent(
       });
     }
     return c.text("ok", 200);
-  } catch (e: any) {
-    console.error("webhook error:", e);
+  } catch (error: unknown) {
+    console.error("webhook error:", error);
     return c.text("internal error", 500);
   }
 }
@@ -116,11 +163,13 @@ app.post("/webhooks/meta", async (c) => {
   // TODO lo de IG por esta vía (DMs) — el bot de IG vive únicamente en ManyChat
   // (decisión de diseño). Messenger (object === "page") no se ve
   // afectado. Para reactivar: quitar la var y redeploy.
-  if ((body as { object?: string }).object === "instagram" && c.env.IG_OFFICIAL === "off") {
+  const metaBody = validatedMetaBody(body);
+  if (!metaBody) return c.text("EVENT_RECEIVED", 200);
+  if (metaBody.object === "instagram" && c.env.IG_OFFICIAL === "off") {
     return c.text("EVENT_RECEIVED", 200);
   }
 
-  for (const msg of parseMetaEvents(body as any)) {
+  for (const msg of parseMetaEvents(metaBody)) {
     // Anti-duplicado: cuando IG_DM_SOURCE="manychat", los DMs de Instagram
     // entran SOLO por el webhook de ManyChat — el canal oficial los ignora
     // (si no, cada DM se procesa DOBLE: 2x LLM, 2x respuestas al lead y
@@ -160,8 +209,10 @@ app.post("/webhooks/whatsapp", async (c) => {
   } catch {
     return c.text("bad json", 400);
   }
+  const whatsappBody = validatedWhatsAppBody(body);
+  if (!whatsappBody) return c.text("EVENT_RECEIVED", 200);
   const origin = c.env.DASHBOARD_BASE_URL || new URL(c.req.url).origin;
-  for (const msg of await parseWhatsAppEvents(body as any, c.env, origin)) {
+  for (const msg of await parseWhatsAppEvents(whatsappBody, c.env, origin)) {
     const doId = c.env.AGENT.idFromName(`${msg.channel}:${msg.channelUserId}`);
     await c.env.AGENT.get(doId).ingest(msg);
   }

@@ -60,6 +60,16 @@ interface Slot {
   start: string;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (isRecord(error) && typeof error.message === "string") return error.message;
+  return String(error);
+}
+
 /**
  * Horarios libres de un event type para una fecha (YYYY-MM-DD, en la zona dada).
  * Devuelve los ISO `start` de los slots disponibles ese día.
@@ -79,15 +89,17 @@ export async function getAvailableSlots(
       headers: { Authorization: `Bearer ${env.CALCOM_API_KEY}`, "cal-api-version": SLOTS_VERSION },
     });
     if (!res.ok) return { ok: false, reason: `http_${res.status}` };
-    const body = (await res.json()) as { data?: Record<string, Slot[]> };
-    const byDate = body.data ?? {};
+    const body: unknown = await res.json();
+    const byDate = isRecord(body) && isRecord(body.data) ? body.data : {};
     const slots = Object.values(byDate)
-      .flat()
-      .map((s) => s?.start)
-      .filter((s): s is string => typeof s === "string");
+      .flatMap((value) => (Array.isArray(value) ? value : []))
+      .flatMap((slot): Slot[] =>
+        isRecord(slot) && typeof slot.start === "string" ? [{ start: slot.start }] : [],
+      )
+      .map((slot) => slot.start);
     return { ok: true, slots };
-  } catch (e: any) {
-    return { ok: false, reason: `transient:${String(e?.message ?? e)}` };
+  } catch (error: unknown) {
+    return { ok: false, reason: `transient:${errorMessage(error)}` };
   }
 }
 
@@ -128,14 +140,21 @@ export async function createBooking(
       }),
     });
     if (!res.ok) return { ok: false, reason: `http_${res.status}` };
-    const body = (await res.json()) as {
-      data?: { id: number | string; uid?: string; status?: string; start?: string };
+    const body: unknown = await res.json();
+    const data = isRecord(body) && isRecord(body.data) ? body.data : null;
+    const id = data?.id;
+    if ((typeof id !== "number" && typeof id !== "string") || !id) {
+      return { ok: false, reason: "no_booking_id" };
+    }
+    return {
+      ok: true,
+      bookingId: id,
+      uid: typeof data.uid === "string" ? data.uid : undefined,
+      status: typeof data.status === "string" ? data.status : undefined,
+      start: typeof data.start === "string" ? data.start : undefined,
     };
-    const d = body.data;
-    if (!d?.id) return { ok: false, reason: "no_booking_id" };
-    return { ok: true, bookingId: d.id, uid: d.uid, status: d.status, start: d.start };
-  } catch (e: any) {
-    return { ok: false, reason: `transient:${String(e?.message ?? e)}` };
+  } catch (error: unknown) {
+    return { ok: false, reason: `transient:${errorMessage(error)}` };
   }
 }
 

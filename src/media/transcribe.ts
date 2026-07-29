@@ -6,6 +6,10 @@ export interface TranscriptionResult {
   durationSeconds?: number;
 }
 
+function isTranscriptionResult(value: unknown): value is { text?: string } {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 export async function transcribeAudio(
   audioUrl: string,
   env: Env,
@@ -18,13 +22,10 @@ export async function transcribeAudio(
   // Cloudflare Workers AI docs), NOT a raw byte array. nodejs_compat is enabled
   // (see wrangler.toml) so Buffer is available, matching the official example.
   const base64 = Buffer.from(buffer).toString("base64");
-  const result = await env.AI.run(
-    "@cf/openai/whisper-large-v3-turbo" as any,
-    {
-      audio: base64,
-    } as any,
-  );
+  const result: unknown = await env.AI.run("@cf/openai/whisper-large-v3-turbo", {
+    audio: base64,
+  });
   return {
-    text: (result as any).text ?? "",
+    text: isTranscriptionResult(result) && typeof result.text === "string" ? result.text : "",
   };
 }

@@ -40,4 +40,35 @@ describe("searchKbTool", () => {
     const result = await execute({ query: "x" });
     expect(result.error).toBe("transient");
   });
+
+  it("returns the existing transient fallback for a malformed embedding", async () => {
+    const fakeEnv = {
+      AI: { run: vi.fn(async () => ({ data: [["not-a-number"]] })) },
+      KB: { query: vi.fn() },
+    } as any;
+    const execute = searchKbTool(fakeEnv).execute as (input: { query: string }) => Promise<any>;
+
+    await expect(execute({ query: "consulta válida" })).resolves.toEqual({
+      error: "transient",
+      message: "embedding shape unexpected",
+    });
+    expect(fakeEnv.KB.query).not.toHaveBeenCalled();
+  });
+
+  it("formats non-Error failures with a message field", async () => {
+    const fakeEnv = {
+      AI: { run: vi.fn(async () => ({ data: [[0.1, 0.2]] })) },
+      KB: {
+        query: vi.fn(async () => {
+          throw { message: "vector caído" };
+        }),
+      },
+    } as any;
+    const execute = searchKbTool(fakeEnv).execute as (input: { query: string }) => Promise<any>;
+
+    await expect(execute({ query: "consulta válida" })).resolves.toEqual({
+      error: "transient",
+      message: "vector caído",
+    });
+  });
 });

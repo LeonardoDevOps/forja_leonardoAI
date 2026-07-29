@@ -15,7 +15,7 @@ vi.mock("../src/replies/sender", () => ({
 }));
 
 import { segmentMembers, segmentCounts } from "../src/segments";
-import { sendCampaign, templatesSentLast24h } from "../src/campaigns";
+import { listContentTemplates, sendCampaign, templatesSentLast24h } from "../src/campaigns";
 
 let env: any;
 let db: Db;
@@ -53,6 +53,39 @@ beforeEach(async () => {
 });
 
 afterEach(() => vi.unstubAllGlobals());
+
+describe("listContentTemplates", () => {
+  it("normaliza plantillas válidas de Twilio Content API", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({
+          contents: [
+            {
+              sid: "HX123",
+              friendly_name: "bienvenida",
+              types: { "twilio/text": { body: "Hola {{1}}" } },
+              variables: { "1": "Ana" },
+            },
+          ],
+        }),
+      ),
+    );
+
+    await expect(listContentTemplates(env)).resolves.toEqual([
+      { sid: "HX123", name: "bienvenida", body: "Hola {{1}}", variables: ["1"] },
+    ]);
+  });
+
+  it("usa el fallback vacío ante un payload con contents mal tipado", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ contents: "unexpected" })),
+    );
+
+    await expect(listContentTemplates(env)).resolves.toEqual([]);
+  });
+});
 
 describe("segments", () => {
   it("quiero_sin_click y click_oferta parten bien la audiencia", async () => {

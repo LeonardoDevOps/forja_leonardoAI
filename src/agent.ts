@@ -1,6 +1,6 @@
 import { Agent } from "agents";
 import { streamText } from "ai";
-import type { SystemModelMessage } from "ai";
+import type { LanguageModel, ModelMessage, SystemModelMessage } from "ai";
 import type { Env } from "./env";
 import { Db } from "./db/client";
 import { ConversationsRepo } from "./db/conversations";
@@ -19,6 +19,15 @@ import { CustomerFactsRepo } from "./db/facts";
 import { createModel } from "./llm/provider";
 import { costOfUsage } from "./pricing";
 import type { ChannelId } from "./channels/shared";
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object" && error !== null && "message" in error) {
+    const message = Reflect.get(error, "message");
+    if (typeof message === "string") return message;
+  }
+  return String(error);
+}
 
 export interface SupportAgentState {
   conversationId: string | null;
@@ -107,9 +116,9 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
           console.warn(`[spam-guard] conv ${conv.id} tope diario de turnos → descanso 12h`);
           return { acknowledged: true };
         }
-      } catch (e) {
+      } catch (error: unknown) {
         // El guard es un extra, nunca la ruta crítica: si falla, se responde normal.
-        console.warn("[spam-guard] check failed:", e);
+        console.warn("[spam-guard] check failed:", errorMessage(error));
       }
     }
 
@@ -220,7 +229,7 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
 
     // Load history (last 20)
     const history = await msgs.lastN(convId, 20);
-    const aiMessages: any[] = history.slice(0, -1).map((m) => ({
+    const aiMessages: ModelMessage[] = history.slice(0, -1).map((m) => ({
       role: (m.role === "tool" ? "user" : m.role === "owner" ? "assistant" : m.role) as "user" | "assistant",
       content: m.content,
     }));
@@ -320,8 +329,8 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
             .join("\n")}\n</cliente>`,
         });
       }
-    } catch (e) {
-      console.warn("[SupportAgent] customer facts lookup failed:", e);
+    } catch (error: unknown) {
+      console.warn("[SupportAgent] customer facts lookup failed:", errorMessage(error));
     }
 
     let assistantText = "";
@@ -333,7 +342,7 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
     let usedModelId = modelId;
 
     // Corre el loop del LLM con un modelo dado; deja los resultados en las vars.
-    const attempt = async (m: any) => {
+    const attempt = async (m: LanguageModel) => {
       const result = streamText({
         model: m,
         system,
@@ -356,8 +365,8 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
       // Persist what the agent DID (not just what it said): tool name + input,
       // feeding the dashboard's thread chips, stats and the Mi Agente counters.
       toolCallsMade = steps.flatMap((s) =>
-        (s.toolCalls ?? []).map((tc: any) => ({
-          toolName: tc.toolName as string,
+        (s.toolCalls ?? []).map((tc) => ({
+          toolName: tc.toolName,
           input: tc.input,
         })),
       );
@@ -365,13 +374,13 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
 
     try {
       await attempt(model);
-    } catch (e: any) {
+    } catch (error: unknown) {
       // FAILOVER con backoff: en ráfagas (historias) el primario suele dar un
       // rate-limit TRANSITORIO — esperar con jitter y reintentar resuelve la
       // mayoría; si no, se prueba el proveedor alterno (también con un segundo
       // intento). El jitter des-sincroniza mensajes que llegaron en el mismo
       // segundo. El bot no puede quedarse mudo el día del evento.
-      console.error("[SupportAgent.processBuffer] streamText failed:", e);
+      console.error("[SupportAgent.processBuffer] streamText failed:", errorMessage(error));
       const backoff = (ms: number) => new Promise((r) => setTimeout(r, ms));
       const { fallbackModel } = await import("./llm/provider");
       const primary = createModel(this.env, tier, cfg.llm);
@@ -382,8 +391,8 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
       try {
         await attempt(model);
         ok = true;
-      } catch (e1: any) {
-        console.error("[SupportAgent.processBuffer] primary retry failed:", e1);
+      } catch (retryError: unknown) {
+        console.error("[SupportAgent.processBuffer] primary retry failed:", errorMessage(retryError));
       }
 
       if (!ok && fb) {
@@ -392,15 +401,18 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
           await attempt(fb.model);
           usedModelId = fb.modelId;
           ok = true;
-        } catch (e2: any) {
-          console.error("[SupportAgent.processBuffer] fallback failed:", e2);
+        } catch (fallbackError: unknown) {
+          console.error("[SupportAgent.processBuffer] fallback failed:", errorMessage(fallbackError));
           await backoff(2500 + Math.floor(Math.random() * 1500));
           try {
             await attempt(fb.model);
             usedModelId = fb.modelId;
             ok = true;
-          } catch (e3: any) {
-            console.error("[SupportAgent.processBuffer] fallback retry failed:", e3);
+          } catch (fallbackRetryError: unknown) {
+            console.error(
+              "[SupportAgent.processBuffer] fallback retry failed:",
+              errorMessage(fallbackRetryError),
+            );
           }
         }
       }

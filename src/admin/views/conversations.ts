@@ -13,7 +13,9 @@
 // polling reemplaza el contenido.
 import type { Env } from "../../env";
 import { Db } from "../../db/client";
+import type { Conversation } from "../../db/conversations";
 import { InsightsRepo } from "../../db/insights";
+import type { Message } from "../../db/messages";
 import { SENTIMENT_BADGE } from "./insights";
 import { costOfUsage, type ModelId } from "../../pricing";
 import { channelLabel } from "../../channels/labels";
@@ -121,6 +123,14 @@ interface InboxParams {
   selectedId?: string;
 }
 
+interface InboxConversation extends Conversation {
+  last_msg: string | null;
+  lead_count: number;
+  lead_status: string | null;
+  open_tickets: number;
+  ai_sentiment: string | null;
+}
+
 /** Preserve the current filter/search when building inbox URLs. */
 function inboxUrl(p: InboxParams, convId?: string): string {
   const qs = new URLSearchParams();
@@ -162,7 +172,7 @@ export async function renderInboxList(env: Env, p: InboxParams): Promise<string>
   }
   const whereSql = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
 
-  const rows = await db.all<any>(
+  const rows = await db.all<InboxConversation>(
     `SELECT c.*,
        (SELECT content FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_msg,
        (SELECT COUNT(*) FROM leads l WHERE l.conversation_id = c.id) as lead_count,
@@ -222,12 +232,12 @@ export async function renderInboxList(env: Env, p: InboxParams): Promise<string>
 
 export async function renderThreadLive(env: Env, convId: string): Promise<string> {
   const db = new Db(env.DB);
-  const conv = await db.first<any>("SELECT * FROM conversations WHERE id = ?", [convId]);
+  const conv = await db.first<Conversation>("SELECT * FROM conversations WHERE id = ?", [convId]);
   if (!conv)
     return `<div style="padding:24px;font-size:12.5px;color:var(--dim)">Conversación no encontrada.</div>`;
 
   const insight = await new InsightsRepo(db).getByConversation(convId);
-  const msgs = await db.all<any>(
+  const msgs = await db.all<Message>(
     "SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at DESC LIMIT 100",
     [convId],
   );

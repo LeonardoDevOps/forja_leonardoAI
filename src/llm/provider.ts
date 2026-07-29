@@ -1,6 +1,7 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createXai } from "@ai-sdk/xai";
+import type { LanguageModel } from "ai";
 import type { Env } from "../env";
 import type { Tier } from "../upgrade/modelSelector";
 
@@ -89,7 +90,7 @@ export interface ResolvedModel {
   provider: LlmProvider;
   modelId: string;
   /** AI SDK LanguageModel instance, ready to pass to streamText/generateText. */
-  model: any;
+  model: LanguageModel;
   /** Only Anthropic supports the ephemeral prompt-cache breakpoint we use. */
   supportsPromptCache: boolean;
 }

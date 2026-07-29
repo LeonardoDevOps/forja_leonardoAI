@@ -48,11 +48,7 @@ export function validateDeployConfig(cfg: DeployConfig): DeployCheckResult {
 
 // Run as a script: read from process.env and exit non-zero on failure.
 // Guarded so importing this module in tests does not call process.exit.
-declare const process: { env: Record<string, string | undefined>; exit(code: number): never };
-const isMain =
-  typeof process !== "undefined" &&
-  typeof (process as any).argv !== "undefined" &&
-  /deploy-check\.ts$/.test(String((process as any).argv?.[1] ?? ""));
+const isMain = /deploy-check\.ts$/.test(process.argv[1] ?? "");
 
 if (isMain) {
   // El check corre en la MÁQUINA DEL MIEMBRO, donde process.env está vacío: la

@@ -17,15 +17,21 @@ interface TgUpdate {
   };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 export async function resolveTelegramFileUrl(fileId: string, token: string): Promise<string | null> {
   // Telegram files are NOT directly addressable by file_id. You must call
   // getFile to obtain a file_path, then download from
   // https://api.telegram.org/file/bot<token>/<file_path> (per Bot API docs).
   const res = await fetch(`${TG_API}${token}/getFile?file_id=${fileId}`);
   if (!res.ok) return null;
-  const json: any = await res.json();
-  if (!json?.ok) return null;
-  return `https://api.telegram.org/file/bot${token}/${json.result.file_path}`;
+  const json: unknown = await res.json();
+  if (!isRecord(json) || json.ok !== true || !isRecord(json.result)) return null;
+  const filePath = json.result.file_path;
+  if (typeof filePath !== "string" || !filePath) return null;
+  return `https://api.telegram.org/file/bot${token}/${filePath}`;
 }
 
 export const telegramAdapter: ChannelAdapter = {

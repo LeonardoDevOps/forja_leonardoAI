@@ -24,6 +24,19 @@ export interface ContentTemplate {
   variables: string[]; // nombres de variables {{1}}, {{2}}…
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function templateBody(types: unknown): string {
+  if (!isRecord(types)) return "";
+  for (const key of ["twilio/text", "twilio/quick-reply", "twilio/call-to-action"]) {
+    const definition = types[key];
+    if (isRecord(definition) && typeof definition.body === "string") return definition.body;
+  }
+  return "";
+}
+
 /** Plantillas HSM de la cuenta (Twilio Content API). */
 export async function listContentTemplates(env: Env): Promise<ContentTemplate[]> {
   const sid = env.TWILIO_ACCOUNT_SID;
@@ -36,20 +49,18 @@ export async function listContentTemplates(env: Env): Promise<ContentTemplate[]>
     console.error("[campaigns] Content API error:", res.status);
     return [];
   }
-  const data = (await res.json()) as { contents?: any[] };
-  return (data.contents ?? []).map((c) => {
-    const types = c.types ?? {};
-    const body: string =
-      types["twilio/text"]?.body ??
-      types["twilio/quick-reply"]?.body ??
-      types["twilio/call-to-action"]?.body ??
-      "";
-    return {
-      sid: c.sid as string,
-      name: (c.friendly_name as string) ?? c.sid,
-      body,
-      variables: Object.keys(c.variables ?? {}),
-    };
+  const data: unknown = await res.json();
+  if (!isRecord(data) || !Array.isArray(data.contents)) return [];
+  return data.contents.flatMap((item): ContentTemplate[] => {
+    if (!isRecord(item) || typeof item.sid !== "string") return [];
+    return [
+      {
+        sid: item.sid,
+        name: typeof item.friendly_name === "string" ? item.friendly_name : item.sid,
+        body: templateBody(item.types),
+        variables: isRecord(item.variables) ? Object.keys(item.variables) : [],
+      },
+    ];
   });
 }
 
@@ -273,25 +284,28 @@ export async function createHandoffTemplate(
       types: { "twilio/text": { body } },
     }),
   });
-  const created = (await createRes.json()) as { sid?: string };
-  if (!createRes.ok || !created.sid) {
+  const created: unknown = await createRes.json();
+  const createdSid = isRecord(created) && typeof created.sid === "string" ? created.sid : null;
+  if (!createRes.ok || !createdSid) {
     return { error: `create ${createRes.status}: ${JSON.stringify(created).slice(0, 180)}` };
   }
 
   const apprRes = await fetch(
-    `https://content.twilio.com/v1/Content/${created.sid}/ApprovalRequests/whatsapp`,
+    `https://content.twilio.com/v1/Content/${createdSid}/ApprovalRequests/whatsapp`,
     {
       method: "POST",
       headers: { Authorization: auth, "Content-Type": "application/json" },
       body: JSON.stringify({ name: HANDOFF_TEMPLATE_NAME, category: "UTILITY" }),
     },
   );
-  const appr = (await apprRes.json()) as { status?: string };
+  const appr: unknown = await apprRes.json();
+  const approval =
+    isRecord(appr) && typeof appr.status === "string" ? appr.status : `error ${apprRes.status}`;
   // name+body en la respuesta = confirmación de QUÉ versión del código creó la
   // plantilla (un setup que corre antes de que propague un deploy crea la vieja).
   return {
-    sid: created.sid,
-    approval: appr.status ?? `error ${apprRes.status}`,
+    sid: createdSid,
+    approval,
     name: HANDOFF_TEMPLATE_NAME,
     body,
   };
@@ -309,11 +323,13 @@ export async function contentApprovalStatus(
     headers: { Authorization: `Basic ${btoa(`${acct}:${tok}`)}` },
   });
   if (!res.ok) return { error: `status ${res.status}` };
-  const data = (await res.json()) as {
-    whatsapp?: { status?: string; rejection_reason?: string };
-  };
+  const data: unknown = await res.json();
+  const whatsapp = isRecord(data) && isRecord(data.whatsapp) ? data.whatsapp : null;
   return {
-    status: data.whatsapp?.status ?? "unknown",
-    rejectionReason: data.whatsapp?.rejection_reason || undefined,
+    status: whatsapp && typeof whatsapp.status === "string" ? whatsapp.status : "unknown",
+    rejectionReason:
+      whatsapp && typeof whatsapp.rejection_reason === "string"
+        ? whatsapp.rejection_reason || undefined
+        : undefined,
   };
 }

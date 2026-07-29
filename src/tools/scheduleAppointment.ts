@@ -4,6 +4,16 @@ import type { Env } from "../env";
 
 const CALCOM_API = "https://api.cal.com/v1";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (isRecord(error) && typeof error.message === "string") return error.message;
+  return String(error);
+}
+
 export function scheduleAppointmentTool(env: Env, _getConversationId: () => string | null) {
   return tool({
     description:
@@ -28,10 +38,16 @@ export function scheduleAppointmentTool(env: Env, _getConversationId: () => stri
           }),
         });
         if (!res.ok) return { error: "calcom_failed" as const, status: res.status };
-        const body = (await res.json()) as any;
-        return { bookingId: body.id, status: body.status };
-      } catch (e: any) {
-        return { error: "transient" as const, message: String(e?.message ?? e) };
+        const body: unknown = await res.json();
+        return {
+          bookingId:
+            isRecord(body) && (typeof body.id === "number" || typeof body.id === "string")
+              ? body.id
+              : undefined,
+          status: isRecord(body) && typeof body.status === "string" ? body.status : undefined,
+        };
+      } catch (error: unknown) {
+        return { error: "transient" as const, message: errorMessage(error) };
       }
     },
   });

@@ -10,6 +10,18 @@ vi.mock("agents", () => ({ Agent: class {} }));
 
 import worker from "../src/index";
 
+async function metaSignature(raw: string, secret: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const bytes = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(raw)));
+  return `sha256=${[...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+}
+
 describe("Worker entry", () => {
   const env = {
     BOT_NAME: "Testi",
@@ -46,5 +58,39 @@ describe("Worker entry", () => {
     expect(await res.text()).toBe("internal error");
     expect(log).toHaveBeenCalled();
     log.mockRestore();
+  });
+
+  it("acknowledges a signed Meta payload with an invalid nested shape", async () => {
+    const raw = JSON.stringify({ object: "page", entry: "unexpected" });
+    const secret = "meta-secret";
+    const res = await worker.fetch(
+      new Request("https://test/webhooks/meta", {
+        method: "POST",
+        headers: { "x-hub-signature-256": await metaSignature(raw, secret) },
+        body: raw,
+      }),
+      { ...env, META_APP_SECRET: secret },
+      {} as any,
+    );
+
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("EVENT_RECEIVED");
+  });
+
+  it("acknowledges a signed WhatsApp payload with an invalid nested shape", async () => {
+    const raw = JSON.stringify({ object: "whatsapp_business_account", entry: 7 });
+    const secret = "whatsapp-secret";
+    const res = await worker.fetch(
+      new Request("https://test/webhooks/whatsapp", {
+        method: "POST",
+        headers: { "x-hub-signature-256": await metaSignature(raw, secret) },
+        body: raw,
+      }),
+      { ...env, WHATSAPP_APP_SECRET: secret },
+      {} as any,
+    );
+
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("EVENT_RECEIVED");
   });
 });

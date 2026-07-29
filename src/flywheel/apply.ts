@@ -12,14 +12,26 @@ import { SuggestionsRepo } from "../db/suggestions";
 import { KbDocsRepo, indexDoc } from "../kb/docs";
 import { getLessons, saveLessons, MAX_LESSONS } from "./detect";
 
+interface SuggestionPayload {
+  title?: unknown;
+  content?: unknown;
+  lesson?: unknown;
+}
+
+function isSuggestionPayload(value: unknown): value is SuggestionPayload {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 export async function applySuggestion(env: Env, id: string): Promise<boolean> {
   const repo = new SuggestionsRepo(new Db(env.DB));
   const s = await repo.getById(id);
   if (!s || s.status !== "proposed") return false;
 
-  let payload: any = {};
+  let payload: SuggestionPayload;
   try {
-    payload = JSON.parse(s.payload);
+    const parsed: unknown = JSON.parse(s.payload);
+    if (!isSuggestionPayload(parsed)) return false;
+    payload = parsed;
   } catch {
     return false;
   }

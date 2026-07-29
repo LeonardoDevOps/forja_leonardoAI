@@ -105,6 +105,30 @@ describe("getAvailableSlots", () => {
     expect(res.ok).toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it("ignora slots mal tipados sin romper el resultado exitoso", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ data: { today: "unexpected" } })),
+    );
+
+    await expect(
+      getAvailableSlots(env({ CALCOM_API_KEY: "cal_x" }), 10, "2026-07-20", "UTC"),
+    ).resolves.toEqual({ ok: true, slots: [] });
+  });
+
+  it("formatea excepciones no-Error sin perder su mensaje", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw { message: "red caída" };
+      }),
+    );
+
+    await expect(
+      getAvailableSlots(env({ CALCOM_API_KEY: "cal_x" }), 10, "2026-07-20", "UTC"),
+    ).resolves.toEqual({ ok: false, reason: "transient:red caída" });
+  });
 });
 
 describe("createBooking", () => {
@@ -152,5 +176,22 @@ describe("createBooking", () => {
       timeZone: "UTC",
     });
     expect(res.ok).toBe(false);
+  });
+
+  it("rechaza una respuesta exitosa sin booking id válido", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ data: { id: false } }, { status: 201 })),
+    );
+
+    await expect(
+      createBooking(env({ CALCOM_API_KEY: "cal_x" }), {
+        eventTypeId: 10,
+        start: "2026-07-20T15:00:00Z",
+        name: "Ana",
+        email: "ana@example.com",
+        timeZone: "UTC",
+      }),
+    ).resolves.toEqual({ ok: false, reason: "no_booking_id" });
   });
 });
