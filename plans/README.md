@@ -29,7 +29,7 @@ condiciones de parada y actualizar aquí su estado.
 | 005 | [Migrar `agents` 0.3.x y supply chain](./005-migrar-agents-0-3-supply-chain.md)  |        P1 | Completado | Ninguna       |
 | 006 | [Endurecer egress de medios y DNS](./006-endurecer-egress-medios-dns.md)         |        P1 | Completado | Ninguna       |
 | 007 | [Eliminar los 33 avisos ESLint](./007-eliminar-avisos-eslint.md)                 |        P1 | COMPLETADO | 005, 006      |
-| 008 | [Elevar cobertura administrativa](./008-elevar-cobertura-admin.md)               |        P2 | TODO       | Ninguna       |
+| 008 | [Elevar cobertura administrativa](./008-elevar-cobertura-admin.md)               |        P2 | COMPLETADO | Ninguna       |
 
 Estados permitidos para los planes pendientes: `TODO`, `EN PROGRESO`,
 `COMPLETADO`, `BLOQUEADO: <motivo>` o `RECHAZADO: <motivo>`.
@@ -107,6 +107,29 @@ sobre los planes 005 y 006 completados.
   nuevo hace fallar CI.
 - Validación: 11 archivos focales y 76 pruebas pasaron; `check:ci` completó
   formato, lint, tipos y 482 pruebas con cobertura global de 73,81% de líneas.
+
+## Resultado del plan 008
+
+Implementado el 2026-07-29 en la rama `advisor/008-admin-coverage`, creada
+sobre el plan 007 completado.
+
+- Se añadió un doble D1 reutilizable y determinista, con consultas parametrizadas,
+  registro de operaciones y errores claros cuando una consulta esperada no está
+  configurada.
+- Las pruebas administrativas cubren uso de Twilio, costes, estadísticas,
+  insights, campañas, base de conocimiento, conexiones y leads.
+- Se ejercitan estados con y sin datos, errores, escape HTML, exportación CSV y
+  respuestas externas simuladas, sin red real, sleeps ni snapshots.
+- El gate `coverage:admin` exige por cada uno de los ocho módulos al menos 70%
+  de líneas, statements y funciones, y 50% de branches. También falla si falta
+  un archivo en el informe de cobertura.
+- Los ocho módulos superan los umbrales; el menor resultado es 74,19% de
+  branches en campañas y el menor resultado restante es 88,88% de funciones
+  en conexiones.
+- Validación focal: 16 archivos y 109 pruebas administrativas. Validación
+  completa: formato, ESLint sin avisos, tipos y 507 pruebas; cobertura global
+  de 82,62% de líneas. Las 32 comparaciones del gate administrativo pasaron.
+- No se modificaron módulos de producción ni el comportamiento funcional.
 
 ## Línea base confirmada
 
