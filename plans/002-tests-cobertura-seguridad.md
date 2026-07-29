@@ -16,13 +16,13 @@ demostrables sin alterar integraciones legítimas.
 
 ## Tareas
 
-- [ ] Ejecutar tests y cobertura con el entorno normalizado.
-- [ ] Identificar módulos críticos con cobertura insuficiente.
-- [ ] Revisar rutas `/admin` y endpoints de control.
-- [ ] Revisar firmas, tamaños y parsing de webhooks.
-- [ ] Revisar interpolación HTML, URLs, fetch externos y herramientas invocadas por el LLM.
-- [ ] Aplicar y probar correcciones de riesgo bajo o medio que sean claramente compatibles.
-- [ ] Documentar hallazgos pendientes sin publicar detalles ofensivos.
+- [x] Ejecutar tests y cobertura con el entorno normalizado.
+- [x] Identificar módulos críticos con cobertura insuficiente.
+- [x] Revisar rutas `/admin` y endpoints de control.
+- [x] Revisar firmas, tamaños y parsing de webhooks.
+- [x] Revisar interpolación HTML, URLs, fetch externos y herramientas invocadas por el LLM.
+- [x] Aplicar y probar correcciones de riesgo bajo o medio que sean claramente compatibles.
+- [x] Documentar hallazgos pendientes sin publicar detalles ofensivos.
 
 ## Aceptación
 

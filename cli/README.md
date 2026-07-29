@@ -21,10 +21,10 @@ npx forjabot init
 
 Requisitos:
 
-- **Node 18+** (para `npx`).
+- **Node 20–24** (para `npx`).
 - Una cuenta **gratis de Cloudflare** (ahí vive tu bot).
 - Un **agente de IA** — [Claude Code](https://claude.com/claude-code) o Codex — para ejecutar los pasos.
-- Una **llave de IA** (Anthropic, OpenAI o xAI). Se guarda como *secreto de Cloudflare*, nunca en el CLI.
+- Una **llave de IA** (Anthropic, OpenAI o xAI). Se guarda como _secreto de Cloudflare_, nunca en el CLI.
 
 ## Inicio rápido
 
@@ -52,13 +52,13 @@ completo: instalar, configurar, desplegar y operar el bot. Puedes desactivarlo c
 
 ## Comandos
 
-| Comando | Qué hace |
-|---|---|
-| `forjabot init` | Asistente interactivo: idioma (ES/EN), licencia (gratis con tu correo o key `HZN-…`), elige el giro e instala. |
-| `forjabot list` | Muestra el catálogo de bots disponibles para tu plan. |
-| `forjabot install <slug>` | Instala un giro específico (p. ej. `restaurante`, `barberia`, `inmobiliaria`). |
-| `forjabot update [carpeta]` | Trae la versión nueva **conservando** tu `member/` (config, base de conocimiento). |
-| `forjabot doctor [carpeta]` | Diagnóstico del bot instalado: versión, archivos, licencia y si el worker responde. |
+| Comando                     | Qué hace                                                                                                       |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `forjabot init`             | Asistente interactivo: idioma (ES/EN), licencia (gratis con tu correo o key `HZN-…`), elige el giro e instala. |
+| `forjabot list`             | Muestra el catálogo de bots disponibles para tu plan.                                                          |
+| `forjabot install <slug>`   | Instala un giro específico (p. ej. `restaurante`, `barberia`, `inmobiliaria`).                                 |
+| `forjabot update [carpeta]` | Trae la versión nueva **conservando** tu `member/` (config, base de conocimiento).                             |
+| `forjabot doctor [carpeta]` | Diagnóstico del bot instalado: versión, archivos, licencia y si el worker responde.                            |
 
 Opciones útiles:
 
@@ -81,9 +81,9 @@ vive en el marcador `.horizontes-bot.json` dentro de la carpeta de tu bot.
 Una vez instalado, operas el bot pidiéndole **skills** a tu agente (no son subcomandos
 de `forjabot`, son instrucciones que tu agente ejecuta sobre el bot ya instalado):
 
-- `reporte`, `exportar`, `analiticas`, `human-in-the-loop`, `conectar-mi-ia` (conecta tu propia IA) — el día a día. *(Gratis)*
-- `superpoderes` (enciende y configura los 12), `reportes` (reporte diario con tu marca), `conexiones-composio` (conecta apps: Gmail, Slack…), `voz-de-marca`, `mantenimiento`, `afinar`, `campaña`, `clonar`, `precios` — operación y ajustes. *(Forja+)*
-- **Modo Agencia:** `cliente-nuevo`, `cliente-misterioso` (demo para un prospecto), `roi`, `cotizar`, `propuesta`, `cobrar` — para revender. *(Forja+)*
+- `reporte`, `exportar`, `analiticas`, `human-in-the-loop`, `conectar-mi-ia` (conecta tu propia IA) — el día a día. _(Gratis)_
+- `superpoderes` (enciende y configura los 12), `reportes` (reporte diario con tu marca), `conexiones-composio` (conecta apps: Gmail, Slack…), `voz-de-marca`, `mantenimiento`, `afinar`, `campaña`, `clonar`, `precios` — operación y ajustes. _(Forja+)_
+- **Modo Agencia:** `cliente-nuevo`, `cliente-misterioso` (demo para un prospecto), `roi`, `cotizar`, `propuesta`, `cobrar` — para revender. _(Forja+)_
 
 Le hablas normal a tu agente ("hazme el reporte del mes") y él sabe cuál usar.
 
@@ -118,7 +118,7 @@ Es sano desconfiar de un `npx` que no conoces — si tu agente de IA se niega a 
 - **El código es este mismo repositorio**, carpeta [`cli/`](./bin/cli.js). Lo que se publica en npm es exactamente ese archivo: puedes leerlo completo antes de correr nada.
 - **No tiene dependencias.** Cero paquetes de terceros: el `package.json` no declara ninguna. Nada que se pueda comprometer río arriba.
 - **No recolecta datos tuyos.** No manda telemetría ni analíticas. Solo habla con el servidor de licencias para validar tu llave y bajar el bot, y con npm para instalarse.
-- **Tu API key nunca pasa por aquí.** El CLI jamás la pide ni la guarda: va como secreto a *tu* cuenta de Cloudflare (`wrangler secret put`).
+- **Tu API key nunca pasa por aquí.** El CLI jamás la pide ni la guarda: va como secreto a _tu_ cuenta de Cloudflare (`wrangler secret put`).
 - **Licencia MIT**, publicado por Horizontes IA.
 
 Compruébalo con:
@@ -132,14 +132,14 @@ Y si prefieres no usar `npx`, clona este repo y corre `node cli/bin/cli.js init`
 
 ### Por qué el CLI pide estos permisos
 
-Los escáneres de cadena de suministro (Socket y similares) marcan las *capacidades* de un paquete. Un instalador necesita varias por definición; aquí está para qué usa cada una, y puedes comprobarlo en [`bin/cli.js`](./bin/cli.js):
+Los escáneres de cadena de suministro (Socket y similares) marcan las _capacidades_ de un paquete. Un instalador necesita varias por definición; aquí está para qué usa cada una, y puedes comprobarlo en [`bin/cli.js`](./bin/cli.js):
 
-| Capacidad | Para qué la usa | Cómo está acotada |
-|---|---|---|
-| **Red** (`node:http`) | Levanta un servidor **local en 127.0.0.1** que recibe el regreso del navegador al hacer `forjabot login`. | Solo escucha en tu propia máquina, en un puerto temporal, y se cierra al terminar. Las llamadas a internet van por `fetch` a nuestro servidor de licencias. |
-| **Shell** (`node:child_process`) | Descomprimir el bot (`tar`), abrir tu navegador en el login, y correr `wrangler` para guardar tus secretos en TU Cloudflare. | Siempre con `execFileSync` y **arreglo de argumentos**, nunca una cadena de shell: no hay forma de inyectar comandos. Cero `shell: true`. |
-| **Variables de entorno** | Únicamente las suyas: `FORJA_SERVER`, `FORJA_CLOUD`, `FORJA_GET_URL`, `FORJA_YES`, `FORJA_NO_ART`, `FORJA_NO_BROWSER`, `FORJA_NO_AGENT_SKILL`, `HORIZONTES_KEY`, `HORIZONTES_SERVER`, y `NO_COLOR` (estándar). | **No lee ninguna credencial del sistema.** Nada de tokens de nube, claves de npm ni variables ajenas. |
-| **Sistema de archivos** | Escribe la carpeta del bot que instalas y tu configuración en `~/.forja/`. | Nada fuera de eso. |
-| **Cadenas URL** | Los dominios propios: forjabots.com y el servidor de licencias. | No hay direcciones IP ni dominios de terceros. |
+| Capacidad                        | Para qué la usa                                                                                                                                                                                                | Cómo está acotada                                                                                                                                           |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Red** (`node:http`)            | Levanta un servidor **local en 127.0.0.1** que recibe el regreso del navegador al hacer `forjabot login`.                                                                                                      | Solo escucha en tu propia máquina, en un puerto temporal, y se cierra al terminar. Las llamadas a internet van por `fetch` a nuestro servidor de licencias. |
+| **Shell** (`node:child_process`) | Descomprimir el bot (`tar`), abrir tu navegador en el login, y correr `wrangler` para guardar tus secretos en TU Cloudflare.                                                                                   | Siempre con `execFileSync` y **arreglo de argumentos**, nunca una cadena de shell: no hay forma de inyectar comandos. Cero `shell: true`.                   |
+| **Variables de entorno**         | Únicamente las suyas: `FORJA_SERVER`, `FORJA_CLOUD`, `FORJA_GET_URL`, `FORJA_YES`, `FORJA_NO_ART`, `FORJA_NO_BROWSER`, `FORJA_NO_AGENT_SKILL`, `HORIZONTES_KEY`, `HORIZONTES_SERVER`, y `NO_COLOR` (estándar). | **No lee ninguna credencial del sistema.** Nada de tokens de nube, claves de npm ni variables ajenas.                                                       |
+| **Sistema de archivos**          | Escribe la carpeta del bot que instalas y tu configuración en `~/.forja/`.                                                                                                                                     | Nada fuera de eso.                                                                                                                                          |
+| **Cadenas URL**                  | Los dominios propios: forjabots.com y el servidor de licencias.                                                                                                                                                | No hay direcciones IP ni dominios de terceros.                                                                                                              |
 
-Y lo más importante: **tu API key nunca pasa por el CLI**. Cuando toca guardarla, se hace con `wrangler secret put` contra *tu* cuenta de Cloudflare — el CLI nunca la recibe, ni la escribe en disco, ni la manda a ningún lado.
+Y lo más importante: **tu API key nunca pasa por el CLI**. Cuando toca guardarla, se hace con `wrangler secret put` contra _tu_ cuenta de Cloudflare — el CLI nunca la recibe, ni la escribe en disco, ni la manda a ningún lado.

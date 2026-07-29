@@ -25,7 +25,7 @@ Un asistente de soporte con IA que montas **en tu propia infraestructura de Clou
 - 💬 **Multicanal** — WhatsApp, Instagram, Messenger y Telegram desde un mismo cerebro.
 - 📚 **Aprende de tus documentos** — subes tus FAQ, políticas y guías; el bot busca ahí antes de responder (RAG con base vectorial).
 - 🎙️ **Entiende notas de voz** — transcribe los audios de tus clientes automáticamente.
-- 🙋 **Sabe cuándo pedir ayuda** — si algo es delicado o no está seguro, te hace *handoff* a ti.
+- 🙋 **Sabe cuándo pedir ayuda** — si algo es delicado o no está seguro, te hace _handoff_ a ti.
 - 📊 **Panel de administración** — conversaciones, leads, base de conocimiento y métricas, todo en `/admin`.
 - ☁️ **Vive en tu Cloudflare** — rápido, barato y sin servidores que mantener.
 - 🧠 **Tu cerebro, tu llave** — Claude, ChatGPT o Grok; tú eliges y pagas solo lo que piensa.
@@ -52,6 +52,8 @@ npx forjabot init
 
 ### Opción B — manual (si ya programas)
 
+Necesitas Node.js 20 o 22 y pnpm 10.34.5.
+
 ```bash
 git clone https://github.com/santmun/forja mi-chatbot
 cd mi-chatbot
@@ -74,10 +76,10 @@ Tu panel queda en `https://<tu-worker>.workers.dev/admin`.
 
 Forja es **gratis y open source**. Lo único que pagas es tu propia infraestructura, y arranca casi en cero:
 
-| Pieza | Costo | Notas |
-|---|---|---|
-| **Cloudflare** (la casa del bot) | **$0** para empezar · ~$5/mes ya con tráfico real | D1, Vectorize y R2 tienen capa gratis generosa |
-| **Cerebro de IA** (tu llave) | ~**$1–2/mes** para un negocio normal | Pagas solo lo que el bot piensa; tu llave, cifrada en tu Cloudflare |
+| Pieza                            | Costo                                             | Notas                                                               |
+| -------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------- |
+| **Cloudflare** (la casa del bot) | **$0** para empezar · ~$5/mes ya con tráfico real | D1, Vectorize y R2 tienen capa gratis generosa                      |
+| **Cerebro de IA** (tu llave)     | ~**$1–2/mes** para un negocio normal              | Pagas solo lo que el bot piensa; tu llave, cifrada en tu Cloudflare |
 
 Nadie más toca tus datos ni tus conversaciones.
 
@@ -144,6 +146,21 @@ Como dueño del negocio, **tú eres el responsable** de esos datos: avisa a tus 
 ## 🤝 Contribuir
 
 Los PRs son bienvenidos. Lee [`CONTRIBUTING.md`](./CONTRIBUTING.md) para el flujo, y abre un issue si tienes una idea o encuentras un bug. Este repo es el **Starter** open source; los giros y comandos de Forja+ viven aparte.
+
+### Calidad y seguridad
+
+El proyecto verifica Node 20 y 22 en CI. Para validar un cambio local sin desplegar:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm check
+pnpm test:coverage
+pnpm security:audit
+```
+
+También están disponibles `pnpm format`, `pnpm lint:fix` y `pnpm check:ci`. La cobertura se
+genera en `coverage/`. Consulta [`SECURITY.md`](./SECURITY.md) para reportar una
+vulnerabilidad de forma privada.
 
 ## 📄 Licencia
 

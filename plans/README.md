@@ -15,12 +15,12 @@ Este backlog da trazabilidad al trabajo iniciado desde
 
 ## Estado
 
-| ID | Plan | Prioridad | Estado | Dependencias |
-|---|---|---:|---|---|
-| 001 | [Calidad, formato y reproducibilidad](./001-calidad-formato-reproducibilidad.md) | P0 | En curso | Ninguna |
-| 002 | [Tests, cobertura y seguridad del código](./002-tests-cobertura-seguridad.md) | P0 | Pendiente | 001 |
-| 003 | [CI y supply chain](./003-ci-supply-chain.md) | P0 | Pendiente | 001, 002 |
-| 004 | [Documentación, validación y entrega](./004-documentacion-validacion-entrega.md) | P0 | Pendiente | 001, 002, 003 |
+| ID  | Plan                                                                             | Prioridad | Estado     | Dependencias  |
+| --- | -------------------------------------------------------------------------------- | --------: | ---------- | ------------- |
+| 001 | [Calidad, formato y reproducibilidad](./001-calidad-formato-reproducibilidad.md) |        P0 | Completado | Ninguna       |
+| 002 | [Tests, cobertura y seguridad del código](./002-tests-cobertura-seguridad.md)    |        P0 | Completado | 001           |
+| 003 | [CI y supply chain](./003-ci-supply-chain.md)                                    |        P0 | Completado | 001, 002      |
+| 004 | [Documentación, validación y entrega](./004-documentacion-validacion-entrega.md) |        P0 | En curso   | 001, 002, 003 |
 
 ## Línea base confirmada
 

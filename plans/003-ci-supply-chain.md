@@ -15,13 +15,13 @@ GitHub Actions.
 
 ## Tareas
 
-- [ ] Verificar versiones y SHAs oficiales de las Actions utilizadas.
-- [ ] Actualizar `ci.yml` con permisos, concurrencia, timeout y matriz.
-- [ ] Crear `codeql.yml` y `dependency-review.yml`.
-- [ ] Crear o integrar `.github/dependabot.yml`.
-- [ ] Endurecer de forma conservadora `publish-cli.yml`, sin publicar.
-- [ ] Ejecutar `pnpm audit`, clasificar rutas y aplicar parches compatibles.
-- [ ] Validar YAML con `actionlint` o revisión estructural documentada.
+- [x] Verificar versiones y SHAs oficiales de las Actions utilizadas.
+- [x] Actualizar `ci.yml` con permisos, concurrencia, timeout y matriz.
+- [x] Crear `codeql.yml` y `dependency-review.yml`.
+- [x] Crear o integrar `.github/dependabot.yml`.
+- [x] Endurecer de forma conservadora `publish-cli.yml`, sin publicar.
+- [x] Ejecutar `pnpm audit`, clasificar rutas y aplicar parches compatibles.
+- [x] Validar YAML con revisión estructural documentada; `actionlint` no estaba instalado.
 
 ## Aceptación
 

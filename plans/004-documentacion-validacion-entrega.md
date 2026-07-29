@@ -16,12 +16,12 @@ entregar una rama revisable con informe local.
 
 ## Tareas
 
-- [ ] Documentar Node, pnpm, calidad, cobertura, auditoría y CI.
-- [ ] Crear la política de reporte privado de vulnerabilidades.
-- [ ] Ejecutar formato, lint, tipos, tests, cobertura, auditoría, checks agregados y validaciones auxiliares.
-- [ ] Revisar diff completo, placeholders, `member/`, secretos y permisos de workflows.
-- [ ] Generar el informe local con resultados antes/después, riesgos y reversión segura.
-- [ ] Crear commits revisables.
+- [x] Documentar Node, pnpm, calidad, cobertura, auditoría y CI.
+- [x] Crear la política de reporte privado de vulnerabilidades.
+- [x] Ejecutar formato, lint, tipos, tests, cobertura, auditoría, checks agregados y validaciones auxiliares.
+- [x] Revisar diff completo, placeholders, `member/`, secretos y permisos de workflows.
+- [x] Generar el informe local con resultados antes/después, riesgos y reversión segura.
+- [x] Crear commits revisables.
 - [ ] Comprobar autenticación sin leer tokens; publicar rama y crear PR borrador cuando sea posible.
 
 ## Aceptación

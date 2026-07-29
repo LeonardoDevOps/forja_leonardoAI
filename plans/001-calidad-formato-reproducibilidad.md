@@ -16,12 +16,12 @@ Prettier y EditorConfig, sin cambios semánticos ni reformateos innecesariamente
 
 ## Tareas
 
-- [ ] Seleccionar y validar una versión concreta de pnpm 10.
-- [ ] Consultar versiones resueltas y peer dependencies de las herramientas.
-- [ ] Actualizar metadatos, scripts y dependencias en `package.json`.
-- [ ] Crear configuraciones de editor, formato y lint.
-- [ ] Instalar con pnpm, aplicar correcciones automáticas y revisar manualmente el diff.
-- [ ] Confirmar que `member/` y `wrangler.toml` no cambian.
+- [x] Seleccionar y validar una versión concreta de pnpm 10.
+- [x] Consultar versiones resueltas y peer dependencies de las herramientas.
+- [x] Actualizar metadatos, scripts y dependencias en `package.json`.
+- [x] Crear configuraciones de editor, formato y lint.
+- [x] Instalar con pnpm, aplicar correcciones automáticas y revisar manualmente el diff.
+- [x] Confirmar que `member/` y `wrangler.toml` no cambian.
 
 ## Aceptación
 
