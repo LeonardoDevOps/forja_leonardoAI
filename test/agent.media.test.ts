@@ -112,9 +112,7 @@ function stubConversations(opts?: { paused?: boolean }) {
     id: "conv-1",
     paused_until: null,
   } as any);
-  vi.spyOn(ConversationsRepo.prototype, "isPaused").mockResolvedValue(
-    opts?.paused ?? false,
-  );
+  vi.spyOn(ConversationsRepo.prototype, "isPaused").mockResolvedValue(opts?.paused ?? false);
 }
 
 describe("SupportAgent.ingest — media (Task 6.3)", () => {
@@ -126,9 +124,7 @@ describe("SupportAgent.ingest — media (Task 6.3)", () => {
     originalFetch = globalThis.fetch;
     // Audio download is stubbed: transcribeAudio fetches the audioUrl then
     // hands bytes to env.AI.run — neither touches the real network.
-    globalThis.fetch = vi.fn(
-      async () => new Response(new Uint8Array([1, 2, 3])),
-    ) as any;
+    globalThis.fetch = vi.fn(async () => new Response(new Uint8Array([1, 2, 3]))) as any;
   });
 
   afterEach(() => {
@@ -163,9 +159,7 @@ describe("SupportAgent.ingest — media (Task 6.3)", () => {
       audioUrl: "https://example.com/voice.ogg",
     });
 
-    expect(agent.state.pendingMessages[0].text).toBe(
-      "(no pude entender el audio)",
-    );
+    expect(agent.state.pendingMessages[0].text).toBe("(no pude entender el audio)");
   });
 
   it("free tier: strips the image and informs the bot it's unsupported", async () => {
@@ -220,25 +214,19 @@ describe("SupportAgent.alarm — multimodal last message (Task 6.3)", () => {
     streamTextMock.mockReset();
     streamTextMock.mockImplementation(() => makeStreamResult("ok"));
 
-    vi.spyOn(MessagesRepo.prototype, "append").mockResolvedValue(
-      undefined as any,
-    );
+    vi.spyOn(MessagesRepo.prototype, "append").mockResolvedValue(undefined as any);
     vi.spyOn(MessagesRepo.prototype, "lastN").mockResolvedValue([
       { role: "user", content: "mensaje previo" },
       { role: "assistant", content: "respuesta previa" },
       { role: "user", content: opts.lastContent },
     ] as any);
-    vi.spyOn(ConversationsRepo.prototype, "touchLastMessage").mockResolvedValue(
-      undefined as any,
-    );
+    vi.spyOn(ConversationsRepo.prototype, "touchLastMessage").mockResolvedValue(undefined as any);
     vi.spyOn(senderMod, "pickAdapter").mockReturnValue({
       sendReply: vi.fn(async () => {}),
     } as any);
 
     // Seed buffer so alarm processes
-    agent.state.pendingMessages = [
-      { text: opts.lastContent, receivedAt: Date.now() },
-    ];
+    agent.state.pendingMessages = [{ text: opts.lastContent, receivedAt: Date.now() }];
 
     await agent.processBuffer();
     return streamTextMock.mock.calls[0][0].messages;
@@ -274,15 +262,9 @@ describe("SupportAgent.alarm — multimodal last message (Task 6.3)", () => {
     streamTextMock.mockReset();
     streamTextMock.mockImplementation(() => makeStreamResult("ok"));
 
-    vi.spyOn(MessagesRepo.prototype, "append").mockResolvedValue(
-      undefined as any,
-    );
-    vi.spyOn(MessagesRepo.prototype, "lastN").mockResolvedValue([
-      { role: "user", content: "hola" },
-    ] as any);
-    vi.spyOn(ConversationsRepo.prototype, "touchLastMessage").mockResolvedValue(
-      undefined as any,
-    );
+    vi.spyOn(MessagesRepo.prototype, "append").mockResolvedValue(undefined as any);
+    vi.spyOn(MessagesRepo.prototype, "lastN").mockResolvedValue([{ role: "user", content: "hola" }] as any);
+    vi.spyOn(ConversationsRepo.prototype, "touchLastMessage").mockResolvedValue(undefined as any);
     vi.spyOn(senderMod, "pickAdapter").mockReturnValue({
       sendReply: vi.fn(async () => {}),
     } as any);
@@ -307,15 +289,9 @@ describe("SupportAgent.alarm — multimodal last message (Task 6.3)", () => {
     streamTextMock.mockReset();
     streamTextMock.mockImplementation(() => makeStreamResult("ok"));
 
-    vi.spyOn(MessagesRepo.prototype, "append").mockResolvedValue(
-      undefined as any,
-    );
-    vi.spyOn(MessagesRepo.prototype, "lastN").mockResolvedValue([
-      { role: "user", content: "hola" },
-    ] as any);
-    vi.spyOn(ConversationsRepo.prototype, "touchLastMessage").mockResolvedValue(
-      undefined as any,
-    );
+    vi.spyOn(MessagesRepo.prototype, "append").mockResolvedValue(undefined as any);
+    vi.spyOn(MessagesRepo.prototype, "lastN").mockResolvedValue([{ role: "user", content: "hola" }] as any);
+    vi.spyOn(ConversationsRepo.prototype, "touchLastMessage").mockResolvedValue(undefined as any);
     vi.spyOn(senderMod, "pickAdapter").mockReturnValue({
       sendReply: vi.fn(async () => {}),
     } as any);

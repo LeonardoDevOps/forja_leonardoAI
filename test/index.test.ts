@@ -29,4 +29,22 @@ describe("Worker entry", () => {
     const res = await worker.fetch(new Request("https://test/nope"), env, {} as any);
     expect(res.status).toBe(404);
   });
+
+  it("does not expose internal webhook parsing errors", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const res = await worker.fetch(
+      new Request("https://test/webhooks/telegram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      }),
+      env,
+      {} as any,
+    );
+
+    expect(res.status).toBe(500);
+    expect(await res.text()).toBe("internal error");
+    expect(log).toHaveBeenCalled();
+    log.mockRestore();
+  });
 });

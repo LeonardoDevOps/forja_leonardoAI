@@ -9,6 +9,7 @@ import { isPro } from "./config";
 import { resolveAgentConfig } from "./settings-loader";
 import { buildTools } from "./tools";
 import { buildMultimodalUserMessage } from "./media/vision";
+import { isSafeExternalMediaUrl } from "./media/urlPolicy";
 import { chunkReply } from "./replies/chunker";
 import { pickAdapter } from "./replies/sender";
 import { selectModel } from "./upgrade/modelSelector";
@@ -61,11 +62,7 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
   async ingest(payload: AgentIncomingPayload): Promise<{ acknowledged: true }> {
     const db = new Db(this.env.DB);
     const convs = new ConversationsRepo(db);
-    const conv = await convs.getOrCreate(
-      payload.channel,
-      payload.channelUserId,
-      payload.displayName,
-    );
+    const conv = await convs.getOrCreate(payload.channel, payload.channelUserId, payload.displayName);
     this.setState({
       ...this.state,
       channel: payload.channel,
@@ -132,24 +129,22 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
     }
 
     if (payload.imageUrl) {
-      hasImage = true;
-      // Pro-only: if free tier, strip the image and inform the bot owner-side
-      if (!isPro(this.env)) {
+      if (!isSafeExternalMediaUrl(payload.imageUrl)) {
+        console.warn("[ingest] rejected unsafe image URL");
+        processedText = (processedText || "") + "\n(No pude procesar la imagen recibida.)";
+      } else if (!isPro(this.env)) {
+        // Pro-only: if free tier, strip the image and inform the bot owner-side
         processedText =
           (processedText || "") +
           "\n(El cliente mandó una imagen, pero tu plan no soporta análisis de imágenes.)";
       } else {
-        processedText =
-          (processedText || "(imagen sin caption)") +
-          `\n[IMAGE_URL: ${payload.imageUrl}]`;
+        hasImage = true;
+        processedText = (processedText || "(imagen sin caption)") + `\n[IMAGE_URL: ${payload.imageUrl}]`;
       }
     }
 
     // Append to buffer (we always persist the client's message)
-    const pending = [
-      ...this.state.pendingMessages,
-      { text: processedText, receivedAt: Date.now() },
-    ];
+    const pending = [...this.state.pendingMessages, { text: processedText, receivedAt: Date.now() }];
     this.setState({
       ...this.state,
       pendingMessages: pending,
@@ -173,7 +168,7 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
     // debounce to a single fire) and set the raw alarm as the trigger.
     const alarmAt = Date.now() + cfg.bufferMs;
     const alarmAtSec = Math.floor(alarmAt / 1000);
-    this.sql`
+    void this.sql`
       INSERT OR REPLACE INTO cf_agents_schedules
         (id, callback, payload, type, time, created_at)
       VALUES
@@ -195,7 +190,10 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
     this.setState({ ...this.state, pendingMessages: [] });
     if (buffered.length === 0) return;
 
-    const combined = buffered.map((m) => m.text).join("\n").trim();
+    const combined = buffered
+      .map((m) => m.text)
+      .join("\n")
+      .trim();
     if (!combined) return;
 
     const db = new Db(this.env.DB);
@@ -214,11 +212,7 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
     // Load history (last 20)
     const history = await msgs.lastN(convId, 20);
     const aiMessages: any[] = history.slice(0, -1).map((m) => ({
-      role: (m.role === "tool"
-        ? "user"
-        : m.role === "owner"
-          ? "assistant"
-          : m.role) as "user" | "assistant",
+      role: (m.role === "tool" ? "user" : m.role === "owner" ? "assistant" : m.role) as "user" | "assistant",
       content: m.content,
     }));
     // Build the LAST user message multimodal-aware: if it carries an
@@ -228,9 +222,7 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
       const imgMatch = lastUserMsg.content.match(/\[IMAGE_URL: (.+?)\]/);
       if (imgMatch && isPro(this.env)) {
         const imageUrl = imgMatch[1];
-        const cleanText = lastUserMsg.content
-          .replace(/\n?\[IMAGE_URL: .+?\]/, "")
-          .trim();
+        const cleanText = lastUserMsg.content.replace(/\n?\[IMAGE_URL: .+?\]/, "").trim();
         aiMessages.push(buildMultimodalUserMessage(cleanText, imageUrl));
       } else {
         aiMessages.push({ role: "user", content: lastUserMsg.content });
@@ -380,9 +372,7 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
       }
 
       if (!ok && fb) {
-        console.warn(
-          `[SupportAgent] failover ${primary.provider} → ${fb.provider}/${fb.modelId}`,
-        );
+        console.warn(`[SupportAgent] failover ${primary.provider} → ${fb.provider}/${fb.modelId}`);
         try {
           await attempt(fb.model);
           usedModelId = fb.modelId;

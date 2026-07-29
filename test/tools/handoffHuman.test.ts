@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { createTestMiniflare } from "../helpers/miniflareSetup";
 import { Db } from "../../src/db/client";
 import { TicketsRepo } from "../../src/db/tickets";
 import { ConversationsRepo } from "../../src/db/conversations";
-import { handoffHumanTool } from "../../src/tools/handoffHuman";
+import { handoffHumanTool, renderHandoffEmailHtml } from "../../src/tools/handoffHuman";
 
 let env: any;
 let tickets: TicketsRepo;
@@ -44,5 +44,18 @@ describe("handoffHumanTool", () => {
     const list = await tickets.listOpen();
     expect(list).toHaveLength(1);
     expect(list[0].summary).toContain("María");
+  });
+
+  it("escapes untrusted ticket text in notification email HTML", () => {
+    const html = renderHandoffEmailHtml(
+      "complaint",
+      `<img src=x onerror="alert(1)">`,
+      `https://dash.test/tickets/"><script>bad()</script>`,
+    );
+
+    expect(html).not.toContain("<img");
+    expect(html).not.toContain("<script>");
+    expect(html).toContain("&lt;img");
+    expect(html).toContain("&quot;&gt;&lt;script&gt;");
   });
 });

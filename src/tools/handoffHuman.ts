@@ -12,8 +12,8 @@ export function handoffHumanTool(env: Env, getConversationId: () => string | nul
     description:
       "Crea un ticket para el dueño + le manda email. Usalo cuando el bot no puede resolver o el cliente pide humano explícitamente.",
     inputSchema: z.object({
-      reason: z.string().describe("Categoría corta del problema"),
-      summary: z.string().max(300).describe("Resumen en 1 frase del contexto"),
+      reason: z.string().trim().min(1).max(80).describe("Categoría corta del problema"),
+      summary: z.string().trim().min(1).max(300).describe("Resumen en 1 frase del contexto"),
       category: z.enum(["billing", "product", "complaint", "other"]).default("other"),
     }),
     execute: async ({ reason, summary, category }) => {
@@ -35,13 +35,12 @@ export function handoffHumanTool(env: Env, getConversationId: () => string | nul
       if (env.RESEND_API_KEY && env.OWNER_EMAIL) {
         try {
           const resend = new Resend(env.RESEND_API_KEY);
+          const ticketUrl = dashboardTicketUrl(env.DASHBOARD_BASE_URL, ticketId);
           await resend.emails.send({
             from: `${env.BUSINESS_NAME} Bot <onboarding@resend.dev>`,
             to: env.OWNER_EMAIL,
-            subject: `[Bot] Ticket ${reason}: ${summary.slice(0, 60)}`,
-            html: `<p><strong>Categoría:</strong> ${category}</p>
-                   <p><strong>Resumen:</strong> ${summary}</p>
-                   <p><a href="${env.DASHBOARD_BASE_URL}/admin/tickets/${ticketId}">Ver ticket</a></p>`,
+            subject: `[Bot] Ticket ${safeSubject(reason)}: ${safeSubject(summary).slice(0, 60)}`,
+            html: renderHandoffEmailHtml(category, summary, ticketUrl),
           });
         } catch (e) {
           console.error("[handoffHuman] resend failed:", e);
@@ -65,6 +64,32 @@ interface HandoffNotice {
   reason: string;
   summary: string;
   ticketId: string;
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(
+    /[&<>"']/g,
+    (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!,
+  );
+}
+
+function safeSubject(value: string): string {
+  return value.replace(/[\u0000-\u001f\u007f]+/g, " ").trim();
+}
+
+function dashboardTicketUrl(baseUrl: string, ticketId: string): string {
+  try {
+    return new URL(`/admin/tickets/${encodeURIComponent(ticketId)}`, baseUrl).toString();
+  } catch {
+    return "#";
+  }
+}
+
+/** Build the notification email without trusting tool or LLM-provided text as HTML. */
+export function renderHandoffEmailHtml(category: string, summary: string, ticketUrl: string): string {
+  return `<p><strong>Categoría:</strong> ${escapeHtml(category)}</p>
+                   <p><strong>Resumen:</strong> ${escapeHtml(summary)}</p>
+                   <p><a href="${escapeHtml(ticketUrl)}">Ver ticket</a></p>`;
 }
 
 /**
@@ -110,7 +135,11 @@ export async function notifyOwner(env: Env, notice: HandoffNotice): Promise<void
     }
   }
   const waViaSetting = Boolean(
-    handoffContentSid && env.OWNER_WA_NUMBER && env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_WA_FROM,
+    handoffContentSid &&
+    env.OWNER_WA_NUMBER &&
+    env.TWILIO_ACCOUNT_SID &&
+    env.TWILIO_AUTH_TOKEN &&
+    env.TWILIO_WA_FROM,
   );
 
   // Fail-LOUD (en logs) cuando no hay ningún canal de aviso configurado: el
@@ -127,18 +156,14 @@ export async function notifyOwner(env: Env, notice: HandoffNotice): Promise<void
   // --- Telegram DM (default) ------------------------------------------------
   if (env.TELEGRAM_BOT_TOKEN && env.OWNER_TELEGRAM_CHAT_ID) {
     try {
-      await fetch(
-        `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: env.OWNER_TELEGRAM_CHAT_ID,
-            text:
-              `🚨 Nuevo ticket [${notice.reason}]\n${notice.summary}\n\nVer: ${ticketUrl}`,
-          }),
-        },
-      );
+      await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: env.OWNER_TELEGRAM_CHAT_ID,
+          text: `🚨 Nuevo ticket [${notice.reason}]\n${notice.summary}\n\nVer: ${ticketUrl}`,
+        }),
+      });
     } catch (e) {
       console.error("[notifyOwner] telegram failed:", e);
     }
@@ -171,17 +196,14 @@ export async function notifyOwner(env: Env, notice: HandoffNotice): Promise<void
           "3": ticketUrl,
         }),
       });
-      await fetch(
-        `https://api.twilio.com/2010-04-01/Accounts/${env.TWILIO_ACCOUNT_SID}/Messages.json`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Basic ${auth}`,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body,
+      await fetch(`https://api.twilio.com/2010-04-01/Accounts/${env.TWILIO_ACCOUNT_SID}/Messages.json`, {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${auth}`,
+          "Content-Type": "application/x-www-form-urlencoded",
         },
-      );
+        body,
+      });
     } catch (e) {
       console.error("[notifyOwner] twilio template failed:", e);
     }

@@ -13,10 +13,7 @@ describe("buildMultimodalUserMessage", () => {
   });
 
   it("builds a multimodal message with image + text caption", () => {
-    const msg = buildMultimodalUserMessage(
-      "¿qué es esto?",
-      "https://x/photo.jpg",
-    );
+    const msg = buildMultimodalUserMessage("¿qué es esto?", "https://x/photo.jpg");
     expect(msg.role).toBe("user");
     const content = msg.content as Array<Record<string, unknown>>;
     expect(Array.isArray(content)).toBe(true);
@@ -47,5 +44,9 @@ describe("buildMultimodalUserMessage", () => {
     expect(msg.role).toBe("user");
     // fetch reference unchanged / untouched by the builder
     expect((globalThis as { fetch?: unknown }).fetch).toBe(fetchSpy);
+  });
+
+  it("rejects private or non-HTTPS image URLs", () => {
+    expect(() => buildMultimodalUserMessage("private", "http://127.0.0.1/a.jpg")).toThrow("media URL");
   });
 });
