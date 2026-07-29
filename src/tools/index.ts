@@ -1,3 +1,4 @@
+import type { ToolSet } from "ai";
 import type { Env } from "../env";
 import { isPro } from "../config";
 import { searchKbTool } from "./searchKb";
@@ -13,11 +14,11 @@ export interface ToolContext {
   getConversationId: () => string | null;
 }
 
-export function buildTools(ctx: ToolContext) {
+export function buildTools(ctx: ToolContext): ToolSet {
   // Free tier base set. captureLead va aquí a propósito: el bot Starter (free)
   // captura prospectos — es el valor central de un bot de ventas. Lo Pro son las
   // tools más avanzadas por nicho (agendar citas, consultar catálogo/inventario).
-  const tools: Record<string, any> = {
+  const tools: ToolSet = {
     searchKb: searchKbTool(ctx.env),
     handoffHuman: handoffHumanTool(ctx.env, ctx.getConversationId),
     pauseBot: pauseBotTool(ctx.env, ctx.getConversationId),
