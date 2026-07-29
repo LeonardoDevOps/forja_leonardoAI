@@ -1,8 +1,9 @@
 import type { ChannelAdapter, IncomingMessage, OutgoingReply } from "./shared";
 import type { Env } from "../env";
+import { isSafeExternalMediaUrl, mediaHostPolicyFor } from "../media/urlPolicy";
 
 export const twilioAdapter: ChannelAdapter = {
-  async parseIncoming(request: Request, _env: Env): Promise<IncomingMessage> {
+  async parseIncoming(request: Request, env: Env): Promise<IncomingMessage> {
     const form = await request.formData();
     const from = String(form.get("From") ?? "");
     const channelUserId = from.replace(/^whatsapp:/, "");
@@ -15,8 +16,11 @@ export const twilioAdapter: ChannelAdapter = {
     if (numMedia > 0) {
       const url = String(form.get("MediaUrl0") ?? "");
       const type = String(form.get("MediaContentType0") ?? "");
-      if (type.startsWith("image/")) imageUrl = url;
-      else if (type.startsWith("audio/")) audioUrl = url;
+      const policy = mediaHostPolicyFor("twilio", env);
+      if (url && isSafeExternalMediaUrl(url, policy)) {
+        if (type.startsWith("image/")) imageUrl = url;
+        else if (type.startsWith("audio/")) audioUrl = url;
+      }
     }
 
     return {

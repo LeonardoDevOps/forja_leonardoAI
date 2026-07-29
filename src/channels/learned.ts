@@ -4,6 +4,7 @@ import { Db } from "../db/client";
 import { SettingsRepo } from "../db/settings";
 import { getByPath } from "../learn/fieldPath";
 import { loadLearnedMapping, type LearnedMapping } from "../learn/mapping";
+import { isSafeExternalMediaUrl, mediaHostPolicyFor, type MediaUrlPolicy } from "../media/urlPolicy";
 
 // Generic, self-configuring channel adapter.
 //
@@ -70,11 +71,16 @@ function parseWithMapping(
   payload: unknown,
   mapping: LearnedMapping,
   fallbackContentType: string,
+  policy: MediaUrlPolicy,
 ): { msg: IncomingMessage; contentType: string } {
   const id = strAt(payload, mapping.idPath);
   const text = strAt(payload, mapping.textPath);
-  const audioUrl = strAt(payload, mapping.audioPath);
-  const imageUrl = strAt(payload, mapping.imagePath);
+  const audioCandidate = strAt(payload, mapping.audioPath);
+  const imageCandidate = strAt(payload, mapping.imagePath);
+  const audioUrl =
+    audioCandidate && isSafeExternalMediaUrl(audioCandidate, policy) ? audioCandidate : undefined;
+  const imageUrl =
+    imageCandidate && isSafeExternalMediaUrl(imageCandidate, policy) ? imageCandidate : undefined;
   const detectedChannel = strAt(payload, mapping.channelPath);
 
   const contentType = detectedChannel ?? mapping.sendType ?? fallbackContentType;
@@ -103,12 +109,17 @@ function parseWithMapping(
 function parseFallback(
   payload: unknown,
   fallbackContentType: string,
+  policy: MediaUrlPolicy,
 ): { msg: IncomingMessage; contentType: string } {
   const body = (payload ?? {}) as ManychatFallbackPayload;
   const subscriber = body.id ?? body.subscriber_id;
   const displayName = [body.first_name, body.last_name].filter(Boolean).join(" ").trim() || undefined;
-  const audio = body.attachments?.find((a) => a.type === "audio");
-  const image = body.attachments?.find((a) => a.type === "image");
+  const audioCandidate = body.attachments?.find((a) => a.type === "audio")?.payload.url;
+  const imageCandidate = body.attachments?.find((a) => a.type === "image")?.payload.url;
+  const audioUrl =
+    audioCandidate && isSafeExternalMediaUrl(audioCandidate, policy) ? audioCandidate : undefined;
+  const imageUrl =
+    imageCandidate && isSafeExternalMediaUrl(imageCandidate, policy) ? imageCandidate : undefined;
   const detectedChannel = body.last_growth_tool?.channel?.trim() || undefined;
 
   const contentType = detectedChannel ?? fallbackContentType;
@@ -119,8 +130,8 @@ function parseFallback(
       channelUserId: String(subscriber ?? ""),
       displayName,
       text: body.last_input_text && body.last_input_text !== "[audio]" ? body.last_input_text : undefined,
-      audioUrl: audio?.payload.url,
-      imageUrl: image?.payload.url,
+      audioUrl,
+      imageUrl,
       isOwnerMessage: false,
       receivedAt: Date.now(),
       rawPayload: payload,
@@ -145,10 +156,11 @@ export function makeLearnedAdapter(channel: string): ChannelAdapter {
       // "instagram". The per-message detected channel (auto-channel) overrides
       // this inside parseWithMapping / parseFallback when present.
       const fallbackContentType = env.MANYCHAT_CONTENT_TYPE ?? channel ?? "instagram";
+      const policy = mediaHostPolicyFor("manychat", env);
 
       const { msg, contentType } = mapping
-        ? parseWithMapping(payload, mapping, fallbackContentType)
-        : parseFallback(payload, fallbackContentType);
+        ? parseWithMapping(payload, mapping, fallbackContentType, policy)
+        : parseFallback(payload, fallbackContentType, policy);
 
       // Persist the auto-channel decision so the stateless sendReply can echo the
       // same content.type back to ManyChat for this channel bucket.

@@ -1,6 +1,11 @@
 import type { ChannelAdapter, IncomingMessage, OutgoingReply } from "./shared";
 import type { Env } from "../env";
-import { fetchSafeExternalMedia, isSafeExternalMediaUrl } from "../media/urlPolicy";
+import {
+  fetchSafeExternalMedia,
+  isSafeExternalMediaUrl,
+  mediaHostPolicyFor,
+  type MediaUrlPolicy,
+} from "../media/urlPolicy";
 
 const MANYCHAT_API = "https://api.manychat.com/fb";
 
@@ -25,9 +30,6 @@ interface ManychatPayload {
 
 const IMG_EXT = /\.(jpe?g|png|gif|webp|heic)(\?|#|$)/i;
 const AUDIO_EXT = /\.(mp3|mp4|m4a|ogg|oga|wav|aac|webm|amr)(\?|#|$)/i;
-// CDNs de Meta desde donde ManyChat entrega el media de IG (el contrato real:
-// cuando el usuario manda foto/audio, ManyChat pone ese link COMO last_input_text).
-const MEDIA_HOSTS = /(lookaside\.fbsbx\.com|fbsbx\.com|cdninstagram\.com|fbcdn\.net|manychat)/i;
 
 /** Si el texto completo es un solo URL, lo devuelve; si trae más palabras, null. */
 function soleUrl(text: string | undefined): string | null {
@@ -38,15 +40,14 @@ function soleUrl(text: string | undefined): string | null {
 /** Clasifica un URL de media: por extensión y, si no alcanza, sondeando el
  * Content-Type (el "patch" del flujo n8n típico). mp4/video cuenta
  * como audio: las notas de voz de IG llegan como mp4 y Whisper las transcribe. */
-async function classifyMediaUrl(url: string): Promise<"image" | "audio" | null> {
-  if (!isSafeExternalMediaUrl(url)) return null;
+async function classifyMediaUrl(url: string, policy: MediaUrlPolicy): Promise<"image" | "audio" | null> {
+  if (!isSafeExternalMediaUrl(url, policy)) return null;
   if (IMG_EXT.test(url)) return "image";
   if (AUDIO_EXT.test(url)) return "audio";
-  if (!MEDIA_HOSTS.test(url)) return null;
   try {
-    let res = await fetchSafeExternalMedia(url, { method: "HEAD" });
+    let res = await fetchSafeExternalMedia(url, policy, { method: "HEAD" });
     if (!res.ok || !res.headers.get("content-type")) {
-      res = await fetchSafeExternalMedia(url, { headers: { Range: "bytes=0-0" } });
+      res = await fetchSafeExternalMedia(url, policy, { headers: { Range: "bytes=0-0" } });
     }
     const ct = (res.headers.get("content-type") ?? "").toLowerCase();
     if (ct.startsWith("image/")) return "image";
@@ -60,7 +61,10 @@ async function classifyMediaUrl(url: string): Promise<"image" | "audio" | null> 
 /** ManyChat a veces manda attachments como JSON-string (mapeo de texto en el
  * External Request) y con tipos variados (image/file/story_mention). Se
  * normaliza todo a una lista { type, url }. */
-function normalizeAttachments(raw: ManychatPayload["attachments"]): { type: string; url: string }[] {
+function normalizeAttachments(
+  raw: ManychatPayload["attachments"],
+  policy: MediaUrlPolicy,
+): { type: string; url: string }[] {
   let list: unknown = raw;
   if (typeof list === "string") {
     try {
@@ -74,7 +78,7 @@ function normalizeAttachments(raw: ManychatPayload["attachments"]): { type: stri
   const out: { type: string; url: string }[] = [];
   for (const a of list) {
     const url: string = a?.payload?.url ?? a?.url ?? "";
-    if (!url || !isSafeExternalMediaUrl(url)) continue;
+    if (!url || !isSafeExternalMediaUrl(url, policy)) continue;
     let type: string = a?.type ?? "";
     // story_mention / share / file con extensión de imagen → tratarlo como imagen.
     if (type !== "image" && type !== "audio" && (IMG_EXT.test(url) || type === "story_mention"))
@@ -85,11 +89,12 @@ function normalizeAttachments(raw: ManychatPayload["attachments"]): { type: stri
 }
 
 export const manychatAdapter: ChannelAdapter = {
-  async parseIncoming(request: Request, _env: Env): Promise<IncomingMessage> {
+  async parseIncoming(request: Request, env: Env): Promise<IncomingMessage> {
     const body = (await request.json()) as ManychatPayload;
     const subscriber = body.id ?? body.subscriber_id;
     const displayName = [body.first_name, body.last_name].filter(Boolean).join(" ").trim() || undefined;
-    const atts = normalizeAttachments(body.attachments);
+    const policy = mediaHostPolicyFor("manychat", env);
+    const atts = normalizeAttachments(body.attachments, policy);
     let audioUrl = atts.find((a) => a.type === "audio")?.url;
     let imageUrl = atts.find((a) => a.type === "image")?.url;
     let text = body.last_input_text && body.last_input_text !== "[audio]" ? body.last_input_text : undefined;
@@ -99,7 +104,7 @@ export const manychatAdapter: ChannelAdapter = {
     if (text && !audioUrl && !imageUrl) {
       const u = soleUrl(text);
       if (u) {
-        const kind = await classifyMediaUrl(u);
+        const kind = await classifyMediaUrl(u, policy);
         if (kind === "image") {
           imageUrl = u;
           text = undefined;

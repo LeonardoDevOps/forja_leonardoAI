@@ -1,13 +1,17 @@
 import type { Env } from "../env";
-import { fetchSafeExternalMedia, readMediaBytes } from "./urlPolicy";
+import { fetchSafeExternalMedia, readMediaBytes, type MediaUrlPolicy } from "./urlPolicy";
 
 export interface TranscriptionResult {
   text: string;
   durationSeconds?: number;
 }
 
-export async function transcribeAudio(audioUrl: string, env: Env): Promise<TranscriptionResult> {
-  const res = await fetchSafeExternalMedia(audioUrl);
+export async function transcribeAudio(
+  audioUrl: string,
+  env: Env,
+  policy: MediaUrlPolicy,
+): Promise<TranscriptionResult> {
+  const res = await fetchSafeExternalMedia(audioUrl, policy);
   if (!res.ok) throw new Error(`audio fetch failed: ${res.status}`);
   const buffer = await readMediaBytes(res);
   // whisper-large-v3-turbo expects a base64-encoded string in `audio` (per the

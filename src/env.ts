@@ -38,6 +38,10 @@ export interface Env {
   OPENAI_MODEL_SMART?: string;
   BUFFER_SECONDS: string;
   DASHBOARD_BASE_URL: string;
+  // Comma-separated exact hostnames approved for media from variable-CDN
+  // channels (ManyChat, learned adapters, Messenger and Instagram).
+  // This is configuration, not a secret. Wildcards and URLs are rejected.
+  MEDIA_ALLOWED_HOSTS?: string;
 
   // Secrets (member-set via wrangler secret put)
   ANTHROPIC_API_KEY: string;

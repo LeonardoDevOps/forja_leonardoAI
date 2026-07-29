@@ -9,7 +9,7 @@ import { isPro } from "./config";
 import { resolveAgentConfig } from "./settings-loader";
 import { buildTools } from "./tools";
 import { buildMultimodalUserMessage } from "./media/vision";
-import { isSafeExternalMediaUrl } from "./media/urlPolicy";
+import { isSafeExternalMediaUrl, mediaHostPolicyFor } from "./media/urlPolicy";
 import { chunkReply } from "./replies/chunker";
 import { pickAdapter } from "./replies/sender";
 import { selectModel } from "./upgrade/modelSelector";
@@ -120,17 +120,27 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
     if (payload.audioUrl) {
       try {
         const { transcribeAudio } = await import("./media/transcribe");
-        const result = await transcribeAudio(payload.audioUrl, this.env);
+        const policy = mediaHostPolicyFor(payload.channel, this.env);
+        const result = await transcribeAudio(payload.audioUrl, this.env, policy);
         processedText = result.text || "(audio sin transcripción)";
-      } catch (e) {
-        console.error("[ingest] transcription failed:", e);
+      } catch {
+        console.error(`[ingest] transcription rejected or failed for channel ${payload.channel}`);
         processedText = "(no pude entender el audio)";
       }
     }
 
     if (payload.imageUrl) {
-      if (!isSafeExternalMediaUrl(payload.imageUrl)) {
-        console.warn("[ingest] rejected unsafe image URL");
+      let imageAllowed = false;
+      try {
+        imageAllowed = isSafeExternalMediaUrl(
+          payload.imageUrl,
+          mediaHostPolicyFor(payload.channel, this.env),
+        );
+      } catch {
+        imageAllowed = false;
+      }
+      if (!imageAllowed) {
+        console.warn(`[ingest] rejected image host for channel ${payload.channel}`);
         processedText = (processedText || "") + "\n(No pude procesar la imagen recibida.)";
       } else if (!isPro(this.env)) {
         // Pro-only: if free tier, strip the image and inform the bot owner-side
@@ -222,7 +232,13 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
       if (imgMatch && isPro(this.env)) {
         const imageUrl = imgMatch[1];
         const cleanText = lastUserMsg.content.replace(/\n?\[IMAGE_URL: .+?\]/, "").trim();
-        aiMessages.push(buildMultimodalUserMessage(cleanText, imageUrl));
+        try {
+          const policy = mediaHostPolicyFor(this.state.channel, this.env);
+          aiMessages.push(buildMultimodalUserMessage(cleanText, imageUrl, policy));
+        } catch {
+          console.warn(`[processBuffer] rejected persisted image host for channel ${this.state.channel}`);
+          aiMessages.push({ role: "user", content: cleanText || "(imagen no disponible)" });
+        }
       } else {
         aiMessages.push({ role: "user", content: lastUserMsg.content });
       }
