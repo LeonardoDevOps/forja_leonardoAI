@@ -33,7 +33,7 @@ condiciones de parada y actualizar aquí su estado.
 | 009 | [Autenticar webhooks de canales](./009-autenticar-webhooks-canales.md)           |        P0 | COMPLETADO | Ninguna       |
 | 010 | [Endurecer acceso al panel](./010-endurecer-acceso-panel-admin.md)               |        P2 | COMPLETADO | Ninguna       |
 | 011 | [Higiene de dependencias y EOL](./011-higiene-deps-y-eol.md)                     |        P3 | COMPLETADO | Ninguna       |
-| 012 | [Revisión de seguridad del CLI](./012-revision-seguridad-cli.md)                 |        P0 | TODO       | Ninguna       |
+| 012 | [Revisión de seguridad del CLI](./012-revision-seguridad-cli.md)                 |        P0 | COMPLETADO | Ninguna       |
 | 013 | [Controles de seguridad del repo](./013-controles-seguridad-repo-github.md)      |        P1 | TODO       | 012           |
 | 014 | [Preparación operativa Cloudflare](./014-preparacion-operativa-cloudflare.md)    |        P1 | TODO       | Ninguna       |
 | 015 | [Mantenimiento de dependencias](./015-mantenimiento-dependencias-residuales.md)  |        P2 | TODO       | Ninguna       |
@@ -115,6 +115,35 @@ Implementado el 2026-07-30 en la rama
 - Validación en checkout limpio: instalación congelada, formato, ESLint sin
   avisos, tipos, 526 pruebas en 73 archivos, 83,35 % de líneas y las 32
   comparaciones del gate administrativo superadas.
+
+## Resultado del plan 012
+
+Implementado el 2026-07-30 en la rama
+`advisor/012-cli-security-review`, creada desde `origin/main` en `1781ae4`.
+
+- El CLI 1.1.18 analiza GZIP/TAR sin dependencias ni `tar` externo, con
+  checksums estructurales, staging, límites y rechazo de traversal, rutas
+  absolutas/Windows, symlinks, hardlinks, tipos especiales y duplicados.
+- Todas las escrituras sensibles usan temporal exclusivo, `fsync` y `rename`;
+  los destinos symlink/reparse y rutas fuera de la raíz se rechazan.
+- Las actualizaciones preservan `wrangler.toml`, `.env*`, `.dev.vars*`,
+  `member/*.local.ts`, `member/kb`, estados y marcador locales.
+- Los servicios propios exigen origen HTTPS exacto y los payloads de red usan
+  listas blancas. El falso positivo de Twilio compara ahora el hostname exacto.
+- `X-Artifact-SHA256` se verifica cuando existe y puede exigirse con
+  `FORJA_REQUIRE_ARTIFACT_INTEGRITY=1`. Residual: el backend no está en este
+  repositorio y debe publicar el header antes de activar fail-closed por
+  defecto.
+- Validación: sintaxis, 22 pruebas focales y
+  `corepack pnpm@10.34.5 check:ci` completo en worktree limpio: formato, ESLint
+  sin warnings, tipos, 541 pruebas en 74 archivos, 83,35 % de líneas y gate
+  administrativo 32/32 superados. El checkout original materializa 130
+  archivos heredados como CRLF aunque Git y `.gitattributes` declaran LF; no se
+  normalizaron archivos fuera del alcance.
+- CodeQL del PR #10 no conserva ninguna de las 14 alertas originales. La nueva
+  MEDIUM #17 marca el `writeSync` esperado tras las validaciones de artefacto y
+  staging; se revisó y descartó como `won't fix` porque eliminar el sink
+  impediría instalar, con el residual de checksum ya documentado.
 
 ## Orden y dependencias de la segunda ola
 

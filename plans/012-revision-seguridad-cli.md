@@ -22,6 +22,7 @@
 - **Categoría**: seguridad
 - **Origen del hallazgo**: Informe de auditoría 2026-07-30 §7 y §9 (P0) — 14 alertas CodeQL abiertas (5 HIGH, 9 MEDIUM)
 - **Planificado en**: commit `f7fdd77`, 2026-07-30
+- **Implementado en**: rama `advisor/012-cli-security-review`, 2026-07-30
 
 ## Por qué importa
 
@@ -212,18 +213,84 @@ reejecutado sobre el CLI sin las alertas corregidas.
 - **Portabilidad**: rutas con espacios/acentos en Windows/Linux/macOS.
 - Sin red real, sin publicar, sin tocar `member/`.
 
+## Resultado de la implementación
+
+Implementado sobre `origin/main` (`1781ae4`) con cambios revisables:
+
+- `1d9f9a6` — extracción TAR/GZIP segura, verificación SHA-256, límites,
+  staging y escrituras atómicas/canónicas.
+- `0e6ac80` — 15 pruebas hostiles del CLI y corrección del falso positivo de
+  campañas.
+- `6429ada` — upstream CLI 1.1.18 portado después del hardening, sin perder las
+  protecciones.
+
+### Alertas y controles
+
+- **#4–#7 HIGH (`file-system-race`)**: las escrituras de `wrangler.toml`,
+  marcador, configuración, credenciales y skill usan temporales exclusivos,
+  `fsync` y `rename` en el mismo directorio. Se rechazan archivos destino y
+  componentes intermedios que sean symlink/reparse point.
+- **#12–#16 MEDIUM (`http-to-file-access`)**: el TGZ de red ya no se escribe
+  dentro del bot ni se entrega a `tar`. Se valida SHA-256 cuando el backend lo
+  publica, se analiza GZIP/TAR en memoria con checksums y límites, se rechazan
+  traversal, rutas absolutas/Windows, symlinks, hardlinks, tipos especiales y
+  duplicados, y solo entonces se materializa un staging físico.
+- **#8–#11 MEDIUM (`file-access-to-http`)**: los servicios propios son orígenes
+  HTTPS exactos, los redirects autenticados fallan cerrados y los cuerpos JSON
+  de `claim`, `subscribe`, `validate`, `redeem` y pairing usan listas blancas.
+  La URL del Worker se reduce a su origen HTTPS, sin userinfo, query ni
+  fragmento. No se adjuntan archivos, `.env`, `member/` ni el entorno.
+- **#3 HIGH (test-only)**: la aserción dejó de buscar el substring
+  `api.twilio.com` y compara `new URL(value).hostname` exactamente.
+
+La actualización conserva `wrangler.toml`, `.env*`, `.dev.vars*`,
+`member/*.local.ts`, `member/kb`, estados locales y el marcador. Las pruebas
+cubren artefactos legítimos, checksum correcto/incorrecto/ausente, tar-slip,
+ruta absoluta, ruta Windows, symlink, hardlink, límites, exclusiones y rutas
+con espacios/acentos.
+
+### Residual de integridad
+
+El backend de artefactos no forma parte de este repositorio y no hay evidencia
+local de que publique `X-Artifact-SHA256`. Para no romper instalaciones
+legítimas, la ausencia del header genera un aviso y mantiene todas las defensas
+estructurales; un valor inválido o que no coincida siempre aborta antes de
+escribir. `FORJA_REQUIRE_ARTIFACT_INTEGRITY=1` permite fallar cerrado cuando el
+backend esté preparado. Activarlo por defecto requiere que el propietario del
+backend publique el header y confirme el contrato; queda como condición
+operativa previa a declarar integridad criptográfica extremo a extremo.
+
+### Validación
+
+- `node --check cli/bin/cli.js` y `cli/bin/security.js`: PASS.
+- Pruebas focales: 22/22 PASS.
+- ESLint: cero errores y cero warnings.
+- TypeScript: PASS.
+- Suite con cobertura: 74 archivos, 541 pruebas, 83,35 % de líneas.
+- Gate administrativo: 32/32 comparaciones PASS.
+- Formato focal y `git diff --check`: PASS.
+- El `format:check` del checkout original detectó 130 archivos heredados
+  materializados como CRLF aunque el índice y `.gitattributes` declaran LF. No
+  se normalizaron archivos fuera del alcance. En un worktree limpio del mismo
+  commit, `corepack pnpm@10.34.5 check:ci` pasó completo.
+- CodeQL del PR #10: las 14 alertas originales no aparecen en la referencia del
+  PR. Surgió una nueva MEDIUM #17 (`http-to-file-access`) en el `writeSync`
+  atómico: es el sink esperado que materializa el artefacto después de validar
+  HTTPS, SHA-256 disponible, TAR, rutas, tipos, límites y staging. Se revisó y
+  descartó como `won't fix` con esa justificación; eliminarlo impediría instalar.
+
 ## Criterios de terminado
 
-- [ ] Las 13 alertas del CLI están corregidas o descartadas con justificación revisada.
-- [ ] La alerta #3 (test) está cerrada o descartada como test-only documentado.
-- [ ] La extracción rechaza traversal, rutas absolutas y symlinks, con límites de tamaño.
-- [ ] El artefacto se verifica por integridad antes de extraer (o residual documentado).
-- [ ] Las escrituras de config sensible son atómicas, canónicas y anti-symlink.
-- [ ] Las exclusiones de actualización preservan `member/`, `wrangler.toml` y secretos locales.
-- [ ] file-to-network limita campos y destinos; sin fuga de secretos.
-- [ ] Upstream 1.1.18 reconciliado con las protecciones intactas.
-- [ ] `node --check` y `check:ci` pasan; solo archivos de alcance.
-- [ ] `plans/README.md` actualizado.
+- [x] Las 13 alertas del CLI están corregidas o descartadas con justificación revisada.
+- [x] La alerta #3 (test) está cerrada o descartada como test-only documentado.
+- [x] La extracción rechaza traversal, rutas absolutas y symlinks, con límites de tamaño.
+- [x] El artefacto se verifica por integridad antes de extraer (o residual documentado).
+- [x] Las escrituras de config sensible son atómicas, canónicas y anti-symlink.
+- [x] Las exclusiones de actualización preservan `member/`, `wrangler.toml` y secretos locales.
+- [x] file-to-network limita campos y destinos; sin fuga de secretos.
+- [x] Upstream 1.1.18 reconciliado con las protecciones intactas.
+- [x] `node --check` y `check:ci` pasan; solo archivos de alcance.
+- [x] `plans/README.md` actualizado.
 
 ## Condiciones de parada
 

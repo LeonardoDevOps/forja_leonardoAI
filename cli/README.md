@@ -76,6 +76,35 @@ terminal interactiva (CI, scripts), cae automáticamente a listas numeradas.
 La licencia y el idioma se guardan en `~/.forja/config.json`. La versión instalada
 vive en el marcador `.horizontes-bot.json` dentro de la carpeta de tu bot.
 
+## Seguridad del instalador y las actualizaciones
+
+El artefacto descargado se trata siempre como contenido no confiable:
+
+- El servidor de licencias y el control plane deben configurarse como **orígenes
+  HTTPS exactos**, sin credenciales, rutas, query ni fragmentos. Las respuestas
+  sensibles no siguen redirects.
+- Si el backend entrega `X-Artifact-SHA256`, el CLI verifica el hash antes de
+  extraer. Un hash inválido o que no coincida detiene la instalación sin escribir
+  el árbol. `FORJA_REQUIRE_ARTIFACT_INTEGRITY=1` permite exigir el header y fallar
+  cerrado cuando el backend no lo entregue.
+- El CLI no delega la extracción en `tar`: valida en memoria el GZIP/TAR, su
+  checksum estructural y cada entrada. Rechaza rutas absolutas, `..`, rutas
+  Windows, symlinks, hardlinks, tipos especiales y duplicados.
+- Se aplican límites de 64 MiB comprimidos, 256 MiB expandidos, 64 MiB por archivo
+  y 20 000 entradas para reducir el riesgo de archivos bomba.
+- La extracción ocurre primero en una carpeta temporal física. Una instalación
+  nueva se promociona completa y una actualización usa reemplazos atómicos por
+  archivo, rechazando symlinks/reparse points en el destino.
+- `update` preserva `wrangler.toml`, `.env*`, `.dev.vars*`,
+  `member/*.local.ts`, `member/kb`, estados locales y el marcador de instalación.
+
+**Residual explícito:** el backend de artefactos no vive en este repositorio y no
+se puede confirmar aquí que publique `X-Artifact-SHA256`. Mientras no lo haga,
+el CLI avisa y conserva las defensas estructurales anteriores, pero no puede
+garantizar integridad criptográfica extremo a extremo. Producción debe publicar
+el header y activar `FORJA_REQUIRE_ARTIFACT_INTEGRITY=1` después de verificar la
+compatibilidad del contrato.
+
 ## Los comandos del agente
 
 Una vez instalado, operas el bot pidiéndole **skills** a tu agente (no son subcomandos
@@ -134,12 +163,12 @@ Y si prefieres no usar `npx`, clona este repo y corre `node cli/bin/cli.js init`
 
 Los escáneres de cadena de suministro (Socket y similares) marcan las _capacidades_ de un paquete. Un instalador necesita varias por definición; aquí está para qué usa cada una, y puedes comprobarlo en [`bin/cli.js`](./bin/cli.js):
 
-| Capacidad                        | Para qué la usa                                                                                                                                                                                                | Cómo está acotada                                                                                                                                           |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Red** (`node:http`)            | Levanta un servidor **local en 127.0.0.1** que recibe el regreso del navegador al hacer `forjabot login`.                                                                                                      | Solo escucha en tu propia máquina, en un puerto temporal, y se cierra al terminar. Las llamadas a internet van por `fetch` a nuestro servidor de licencias. |
-| **Shell** (`node:child_process`) | Descomprimir el bot (`tar`), abrir tu navegador en el login, y correr `wrangler` para guardar tus secretos en TU Cloudflare.                                                                                   | Siempre con `execFileSync` y **arreglo de argumentos**, nunca una cadena de shell: no hay forma de inyectar comandos. Cero `shell: true`.                   |
-| **Variables de entorno**         | Únicamente las suyas: `FORJA_SERVER`, `FORJA_CLOUD`, `FORJA_GET_URL`, `FORJA_YES`, `FORJA_NO_ART`, `FORJA_NO_BROWSER`, `FORJA_NO_AGENT_SKILL`, `HORIZONTES_KEY`, `HORIZONTES_SERVER`, y `NO_COLOR` (estándar). | **No lee ninguna credencial del sistema.** Nada de tokens de nube, claves de npm ni variables ajenas.                                                       |
-| **Sistema de archivos**          | Escribe la carpeta del bot que instalas y tu configuración en `~/.forja/`.                                                                                                                                     | Nada fuera de eso.                                                                                                                                          |
-| **Cadenas URL**                  | Los dominios propios: forjabots.com y el servidor de licencias.                                                                                                                                                | No hay direcciones IP ni dominios de terceros.                                                                                                              |
+| Capacidad                        | Para qué la usa                                                                                                                                                                                                                                    | Cómo está acotada                                                                                                                                                                                        |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Red** (`node:http`)            | Levanta un servidor **local en 127.0.0.1** para el regreso de `forjabot login`. También consulta licencias, el control plane, la Graph API de Meta durante `doctor --whatsapp` y el Worker HTTPS que el usuario indique.                           | Los servicios propios usan orígenes HTTPS exactos y redirects bloqueados; la URL del Worker se reduce a su origen HTTPS. El servidor local usa nonce, puerto temporal y se cierra al terminar.           |
+| **Shell** (`node:child_process`) | Abre el navegador y ejecuta `wrangler` para guardar secretos en TU Cloudflare.                                                                                                                                                                     | Usa `execFileSync` con argumentos separados. En Windows solo `npx wrangler` activa `shell` para resolver `npx.cmd`; el comando y los nombres de secretos son fijos. La extracción no usa shell ni `tar`. |
+| **Variables de entorno**         | Únicamente las suyas: `FORJA_SERVER`, `FORJA_CLOUD`, `FORJA_GET_URL`, `FORJA_YES`, `FORJA_NO_ART`, `FORJA_NO_BROWSER`, `FORJA_NO_AGENT_SKILL`, `FORJA_REQUIRE_ARTIFACT_INTEGRITY`, `HORIZONTES_KEY`, `HORIZONTES_SERVER`, y `NO_COLOR` (estándar). | **No enumera ni adjunta el entorno.** Solo lee las variables nombradas; las credenciales recibidas se usan en su operación prevista y nunca se incluyen en el artefacto.                                 |
+| **Sistema de archivos**          | Escribe la carpeta del bot, `~/.forja/` y la guía opcional `~/.claude/skills/forja/`.                                                                                                                                                              | Escrituras atómicas; destinos symlink/reparse rechazados; actualización con exclusiones explícitas para configuración, secretos locales y conocimiento del miembro.                                      |
+| **Cadenas URL**                  | Servidor de licencias, app.forjabots.com, Graph API de Meta y el Worker configurado por el usuario.                                                                                                                                                | HTTPS obligatorio, sin credenciales embebidas; payloads JSON con listas blancas de campos y redirects bloqueados para llamadas autenticadas.                                                             |
 
 Y lo más importante: **tu API key nunca pasa por el CLI**. Cuando toca guardarla, se hace con `wrangler secret put` contra _tu_ cuenta de Cloudflare — el CLI nunca la recibe, ni la escribe en disco, ni la manda a ningún lado.
