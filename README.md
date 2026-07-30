@@ -52,7 +52,7 @@ npx forjabot init
 
 ### Opción B — manual (si ya programas)
 
-Necesitas Node.js 20 o 22 y pnpm 10.34.5.
+Necesitas Node.js 22 o 24 y pnpm 10.34.5.
 
 ```bash
 git clone https://github.com/santmun/forja mi-chatbot
@@ -201,6 +201,24 @@ instalación existente, guarda los nuevos secrets y vuelve a registrar/configura
 el webhook antes de enviar tráfico. Nunca pegues secretos en chats, código,
 logs o `wrangler.toml`; usa `wrangler secret put`.
 
+### Preparación de Cloudflare para producción
+
+No despliegues directamente desde esta plantilla ni uses su `wrangler.toml`
+mientras conserve placeholders. Separa staging y producción, protege `/admin`
+y `/api` con Access/WAF y Rate Limiting, prueba firmas válidas e inválidas y
+prepara monitorización y rollback antes de abrir tráfico.
+
+El
+[runbook de producción en Cloudflare](./docs/cloudflare-production-runbook.md)
+incluye el orden seguro de rotación, la matriz de staging, la decisión temporal
+sobre egress/DNS y un gate offline de evidencia. El gate solo usa nombres y
+estados redactados; nunca lee valores de secretos ni despliega:
+
+```bash
+pnpm cloudflare:preflight -- \
+  --evidence .forja-reports/plan014-cloudflare-evidence.json
+```
+
 ---
 
 ## 🤝 Contribuir
@@ -209,7 +227,7 @@ Los PRs son bienvenidos. Lee [`CONTRIBUTING.md`](./CONTRIBUTING.md) para el fluj
 
 ### Calidad y seguridad
 
-El proyecto verifica Node 20 y 22 en CI. Para validar un cambio local sin desplegar:
+El proyecto verifica Node 22 y 24 en CI. Para validar un cambio local sin desplegar:
 
 ```bash
 pnpm install --frozen-lockfile

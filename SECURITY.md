@@ -156,6 +156,20 @@ forks; por ello el workflow lo omite explícitamente en este fork y no debe
 interpretarse como un gate efectivo. Al portar los cambios a un repositorio
 canónico, debe verificarse que `Revisar dependencias` se ejecute y quede verde.
 
+## Operación segura en Cloudflare
+
+El [runbook de producción en Cloudflare](./docs/cloudflare-production-runbook.md)
+exige entornos y recursos separados, rotación interactiva sin registrar valores,
+Access/WAF y Rate Limiting delante de `/admin` y `/api`, pruebas positivas y
+negativas en staging, monitorización y una versión estable preparada para
+rollback.
+
+El gate `pnpm cloudflare:preflight` valida únicamente evidencia redactada y
+falla cerrado si falta un control. No consulta Cloudflare, no lee secretos y no
+autoriza por sí solo una promoción. El residual DNS se acepta temporalmente
+hasta el 2026-09-30; debe cerrarse con un proxy/Service Binding probado o
+reevaluarse antes de esa fecha.
+
 ## Auditoría de preparación para producción
 
 El [informe de auditoría y endurecimiento](./docs/auditoria-produccion-2026-07-30.md)
