@@ -142,7 +142,7 @@ describe("sendCampaign", () => {
     expect(r1.sentFreeform).toBe(1);
     expect(r1.sentTemplate).toBe(1);
     expect(freeformSends[0]).toEqual({ userId: "+521111", text: "hola en ventana" });
-    expect(templateCalls.some((u) => u.includes("api.twilio.com"))).toBe(true);
+    expect(templateCalls.some((value) => new URL(value).hostname === "api.twilio.com")).toBe(true);
     expect(await templatesSentLast24h(db, NOW)).toBe(1);
 
     // El historial guarda el TEXTO de la plantilla (con variables) — el agente
