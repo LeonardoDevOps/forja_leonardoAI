@@ -34,7 +34,7 @@ condiciones de parada y actualizar aquí su estado.
 | 010 | [Endurecer acceso al panel](./010-endurecer-acceso-panel-admin.md)               |        P2 | COMPLETADO | Ninguna       |
 | 011 | [Higiene de dependencias y EOL](./011-higiene-deps-y-eol.md)                     |        P3 | COMPLETADO | Ninguna       |
 | 012 | [Revisión de seguridad del CLI](./012-revision-seguridad-cli.md)                 |        P0 | COMPLETADO | Ninguna       |
-| 013 | [Controles de seguridad del repo](./013-controles-seguridad-repo-github.md)      |        P1 | TODO       | 012           |
+| 013 | [Controles de seguridad del repo](./013-controles-seguridad-repo-github.md)      |        P1 | COMPLETADO | 012           |
 | 014 | [Preparación operativa Cloudflare](./014-preparacion-operativa-cloudflare.md)    |        P1 | TODO       | Ninguna       |
 | 015 | [Mantenimiento de dependencias](./015-mantenimiento-dependencias-residuales.md)  |        P2 | TODO       | Ninguna       |
 
@@ -144,6 +144,32 @@ Implementado el 2026-07-30 en la rama
   MEDIUM #17 marca el `writeSync` esperado tras las validaciones de artefacto y
   staging; se revisó y descartó como `won't fix` porque eliminar el sink
   impediría instalar, con el residual de checksum ya documentado.
+
+## Resultado del plan 013
+
+Implementado el 2026-07-30 en la rama
+`advisor/013-repo-security-controls`, creada desde `origin/main` en `dedabc8`.
+
+- Dependency Graph/Alerts y Dependabot Security Updates están habilitados. La
+  API de alertas pasó de `403` a responder correctamente y Automated Security
+  Fixes quedó activo.
+- `main` exige rama actualizada, los checks reales `Node 22`, `Node 24` y
+  `JavaScript y TypeScript` (CodeQL), una aprobación y resolución de
+  conversaciones; force-push y eliminación están prohibidos.
+- `SECURITY.md` define triaje semanal, SLA por severidad y justificación
+  revisada para descartar alertas `HIGH`, con referencia al plan 012.
+- `CONTRIBUTING.md` alinea Node 22/24, los gates y la revisión de PR
+  automatizados.
+- La configuración existente de Dependabot y los permisos mínimos de los
+  workflows eran correctos y no se ampliaron.
+- Residual operativo: solo `LeonardoDevOps` tiene permiso de escritura. Se
+  conserva el bypass administrativo para no imposibilitar todos los merges;
+  debe desactivarse al incorporar un segundo mantenedor.
+- Dependency Review sigue sin ser un gate efectivo en este fork porque la API
+  devuelve `403`; está documentado y debe verificarse al portar upstream.
+- Dependabot expone el aviso `MEDIUM` ya conocido de `@hono/node-server`, con
+  seguimiento en el plan 015; no se forzó una major transitiva fuera de
+  alcance.
 
 ## Orden y dependencias de la segunda ola
 
