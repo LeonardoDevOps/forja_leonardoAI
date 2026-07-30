@@ -9,6 +9,7 @@
 import { basicAuth } from "hono/basic-auth";
 import type { MiddlewareHandler } from "hono";
 import type { Env } from "../env";
+import { timingSafeEqual } from "../http-auth";
 
 /** Fixed username for the admin dashboard. */
 export const ADMIN_USERNAME = "admin";
@@ -22,24 +23,6 @@ export function adminAuth(env: Env): MiddlewareHandler {
     username: ADMIN_USERNAME,
     password: env.DASHBOARD_PASSWORD,
   });
-}
-
-/**
- * Constant-time string comparison to avoid leaking length/content via timing.
- * Returns true only when both strings are byte-for-byte identical.
- */
-function timingSafeEqual(a: string, b: string): boolean {
-  const enc = new TextEncoder();
-  const ab = enc.encode(a);
-  const bb = enc.encode(b);
-  // Fold the length mismatch into the result while still iterating over the
-  // longer of the two to keep timing stable.
-  let diff = ab.length ^ bb.length;
-  const max = Math.max(ab.length, bb.length);
-  for (let i = 0; i < max; i++) {
-    diff |= (ab[i] ?? 0) ^ (bb[i] ?? 0);
-  }
-  return diff === 0;
 }
 
 /** Decode a base64 string in both Worker (atob) and Node/test (Buffer) runtimes. */

@@ -38,6 +38,9 @@ export interface Env {
   OPENAI_MODEL_SMART?: string;
   BUFFER_SECONDS: string;
   DASHBOARD_BASE_URL: string;
+  // Exact public URL configured in Twilio. Defaults to
+  // `${DASHBOARD_BASE_URL}/webhooks/twilio` when omitted.
+  TWILIO_WEBHOOK_URL?: string;
   // Comma-separated exact hostnames approved for media from variable-CDN
   // channels (ManyChat, learned adapters, Messenger and Instagram).
   // This is configuration, not a secret. Wildcards and URLs are rejected.
@@ -48,7 +51,9 @@ export interface Env {
   OPENAI_API_KEY?: string; // alternative LLM provider (see LLM_PROVIDER)
   RESEND_API_KEY?: string;
   TELEGRAM_BOT_TOKEN?: string;
+  TELEGRAM_WEBHOOK_SECRET?: string;
   MANYCHAT_API_KEY?: string;
+  MANYCHAT_WEBHOOK_SECRET?: string;
   MANYCHAT_CONTENT_TYPE?: "instagram" | "whatsapp" | "telegram" | "messenger"; // ManyChat channel for sendContent; defaults to "instagram"
   TWILIO_ACCOUNT_SID?: string;
   TWILIO_AUTH_TOKEN?: string;

@@ -75,11 +75,11 @@ describe("POST /webhooks/learn/:channel", () => {
     };
   });
 
-  function post(channel: string, payload: unknown) {
+  function post(channel: string, payload: unknown, headers: Record<string, string> = {}) {
     return worker.fetch(
       new Request(`https://test/webhooks/learn/${channel}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify(payload),
       }),
       env,
@@ -124,6 +124,22 @@ describe("POST /webhooks/learn/:channel", () => {
       channel: "whatsapp",
     });
     expect(await loadCapture(repo, "whatsapp", "text")).toEqual(payload);
+  });
+
+  it("protects ManyChat learn captures with the same shared secret", async () => {
+    env.MANYCHAT_WEBHOOK_SECRET = "manychat-secret";
+    await startLearnMode(repo, "manychat", 15);
+    const payload = { id: "subscriber-1", last_input_text: "hola" };
+
+    const rejected = await post("manychat", payload);
+    expect(rejected.status).toBe(403);
+    expect(await loadCapture(repo, "manychat", "text")).toBeNull();
+
+    const accepted = await post("manychat", payload, {
+      "X-Forja-Webhook-Secret": "manychat-secret",
+    });
+    expect(accepted.status).toBe(200);
+    expect(await loadCapture(repo, "manychat", "text")).toEqual(payload);
   });
 
   it("isolates learn mode per channel (on for one, off for another)", async () => {

@@ -13,6 +13,7 @@
 // URL es pública pero con HMAC + expiración, y el token queda del lado del server.
 import type { ChannelAdapter, IncomingMessage, OutgoingReply } from "./shared";
 import type { Env } from "../env";
+import { timingSafeEqual } from "../http-auth";
 
 const GRAPH_VERSION = "v21.0";
 const MEDIA_TTL_MS = 10 * 60 * 1000; // la URL firmada del proxy vive 10 min
@@ -58,13 +59,6 @@ async function hmacHex(secret: string, message: string): Promise<string> {
   );
   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message));
   return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
 }
 
 /** Construye la URL firmada del proxy para un media_id (o null si no hay secret/base). */

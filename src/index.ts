@@ -14,7 +14,7 @@ import { Db } from "./db/client";
 import { SettingsRepo, SETTING_KEYS } from "./db/settings";
 import { detectKind } from "./learn/fieldPath";
 import { saveCapture, isLearnMode } from "./learn/mapping";
-import { tokensMatch } from "./http-auth";
+import { timingSafeEqual, tokensMatch, twilioExpectedSignature } from "./http-auth";
 import { apiApp } from "./api";
 
 export { SupportAgent } from "./agent";
@@ -68,6 +68,40 @@ function validatedWhatsAppBody(value: unknown): WhatsAppWebhookBody | null {
   return value as WhatsAppWebhookBody;
 }
 
+const TWILIO_ACK = "<Response></Response>";
+
+function twilioResponse(): Response {
+  return new Response(TWILIO_ACK, {
+    status: 200,
+    headers: { "Content-Type": "text/xml" },
+  });
+}
+
+function configuredTwilioWebhookUrl(env: Env): string | null {
+  const explicit = env.TWILIO_WEBHOOK_URL?.trim();
+  const base = env.DASHBOARD_BASE_URL?.trim();
+  const candidate = explicit || (base ? `${base.replace(/\/+$/, "")}/webhooks/twilio` : "");
+  if (!candidate) return null;
+  try {
+    return new URL(candidate).protocol === "https:" ? candidate : null;
+  } catch {
+    return null;
+  }
+}
+
+function stringFormEntries(form: FormData): [string, string][] | null {
+  const entries: [string, string][] = [];
+  for (const [name, value] of form.entries()) {
+    if (typeof value !== "string") return null;
+    entries.push([name, value]);
+  }
+  return entries;
+}
+
+function hasValidSharedSecret(provided: string | undefined, expected: string | undefined): boolean {
+  return !!provided && !!expected && timingSafeEqual(provided, expected);
+}
+
 app.get("/health", (c) => c.text("ok", 200));
 
 // Parse the provider payload via the channel adapter, derive the per-user DO id
@@ -92,10 +126,7 @@ async function routeToAgent(
     // (`<Response></Response>`) to tell Twilio to send nothing. Other channels
     // ignore the body, so a plain "ok" is fine for them.
     if (msg.channel === "twilio") {
-      return new Response("<Response></Response>", {
-        status: 200,
-        headers: { "Content-Type": "text/xml" },
-      });
+      return twilioResponse();
     }
     return c.text("ok", 200);
   } catch (error: unknown) {
@@ -104,24 +135,57 @@ async function routeToAgent(
   }
 }
 
-app.post("/webhooks/telegram", (c) => routeToAgent(c, telegramAdapter));
-app.post("/webhooks/manychat", (c) => routeToAgent(c, manychatAdapter));
+app.post("/webhooks/telegram", (c) => {
+  const provided = c.req.header("x-telegram-bot-api-secret-token");
+  if (!hasValidSharedSecret(provided, c.env.TELEGRAM_WEBHOOK_SECRET)) {
+    return c.text("forbidden", 403);
+  }
+  return routeToAgent(c, telegramAdapter);
+});
+
+app.post("/webhooks/manychat", (c) => {
+  const provided = c.req.header("x-forja-webhook-secret");
+  if (!hasValidSharedSecret(provided, c.env.MANYCHAT_WEBHOOK_SECRET)) {
+    return c.text("forbidden", 403);
+  }
+  return routeToAgent(c, manychatAdapter);
+});
+
 // WhatsApp (Twilio): rutea el mensaje entrante al bot de clientes (Claude). El
 // body se lee UNA vez; ack con TwiML vacío para que Twilio no reenvíe el cuerpo
 // como mensaje.
 app.post("/webhooks/twilio", async (c) => {
+  const authToken = c.env.TWILIO_AUTH_TOKEN;
+  const publicUrl = configuredTwilioWebhookUrl(c.env);
+  const providedSignature = c.req.header("x-twilio-signature");
+
+  let params: [string, string][] | null = null;
+  try {
+    params = stringFormEntries(await c.req.raw.clone().formData());
+  } catch {
+    // Keep Twilio's webhook retries quiet while refusing to ingest malformed
+    // or unverifiable requests.
+  }
+
+  const expectedSignature =
+    authToken && publicUrl && params ? await twilioExpectedSignature(publicUrl, params, authToken) : null;
+  if (!expectedSignature || !providedSignature || !timingSafeEqual(expectedSignature, providedSignature)) {
+    console.warn("twilio webhook rejected: invalid signature");
+    return twilioResponse();
+  }
+
   let msg;
   try {
     msg = await twilioAdapter.parseIncoming(c.req.raw, c.env);
   } catch (e) {
     console.error("twilio parse error:", e);
-    return new Response("<Response></Response>", { status: 200, headers: { "Content-Type": "text/xml" } });
+    return twilioResponse();
   }
   const doId = c.env.AGENT.idFromName(`${msg.channel}:${msg.channelUserId}`);
   await c.env.AGENT.get(doId)
     .ingest(msg)
     .catch((e) => console.error("ingest:", e));
-  return new Response("<Response></Response>", { status: 200, headers: { "Content-Type": "text/xml" } });
+  return twilioResponse();
 });
 
 // --- Meta oficial (Facebook Messenger + Instagram DMs, sin ManyChat) --------
@@ -232,6 +296,12 @@ app.get("/webhooks/whatsapp/media/:id", (c) =>
 // caller knows nothing was captured.
 app.post("/webhooks/learn/:channel", async (c) => {
   const channel = c.req.param("channel");
+  if (
+    channel === "manychat" &&
+    !hasValidSharedSecret(c.req.header("x-forja-webhook-secret"), c.env.MANYCHAT_WEBHOOK_SECRET)
+  ) {
+    return c.json({ ok: false, error: "forbidden" }, 403);
+  }
   let payload: unknown;
   try {
     payload = await c.req.json();
