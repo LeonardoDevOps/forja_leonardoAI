@@ -36,7 +36,8 @@ condiciones de parada y actualizar aquí su estado.
 | 012 | [Revisión de seguridad del CLI](./012-revision-seguridad-cli.md)                 |        P0 | COMPLETADO | Ninguna       |
 | 013 | [Controles de seguridad del repo](./013-controles-seguridad-repo-github.md)      |        P1 | COMPLETADO | 012           |
 | 014 | [Preparación operativa Cloudflare](./014-preparacion-operativa-cloudflare.md)    |        P1 | BLOQUEADO  | Ninguna       |
-| 015 | [Mantenimiento de dependencias](./015-mantenimiento-dependencias-residuales.md)  |        P2 | TODO       | Ninguna       |
+| 015 | [Mantenimiento de dependencias](./015-mantenimiento-dependencias-residuales.md)  |        P2 | COMPLETADO | Ninguna       |
+| 016 | [Migrar `agents` a la serie actual](./016-migrar-agents-0-20.md)                 |        P1 | TODO       | 015           |
 
 Estados permitidos para los planes pendientes: `TODO`, `EN PROGRESO`,
 `COMPLETADO`, `BLOQUEADO: <motivo>` o `RECHAZADO: <motivo>`.
@@ -200,6 +201,33 @@ auditoría sin vulnerabilidades altas y `git diff --check` superados.
 La ejecución externa se desbloquea cuando un operador completa el runbook y el
 gate `cloudflare:preflight` queda verde.
 
+## Resultado del plan 015
+
+Implementado el 2026-07-30 en la rama
+`advisor/015-dependency-maintenance`, creada desde `origin/main` en `3d15dc7`.
+
+- `@modelcontextprotocol/sdk` pasó de 1.26.0 a 1.30.0 sin migrar
+  `agents 0.3.10`.
+- MCP 1.30 admite `@hono/node-server ^1.19.9 || ^2.0.5`; el override exacto a
+  2.0.12 cierra `GHSA-frvp-7c67-39w9`. El árbol contiene una sola versión de
+  ambos paquetes.
+- La auditoría LOW pasó de un aviso moderado a cero vulnerabilidades; el script
+  `security:audit` exige desde ahora ese nivel.
+- El workflow semanal `Dependency Audit` usa Node 24, permisos
+  `contents: read`, instalación congelada, `check:ci` y auditoría LOW.
+- `docs/dependency-maintenance.md` define cadencia, revisión, política de
+  actualización y el registro de overrides.
+- `agents` no se actualizó a ciegas: la migración 0.3.10 → serie actual queda
+  aislada en el plan 016 con pruebas de estado, alarms, scheduling y rollback.
+- No se modificaron `member/`, `wrangler.toml`, secretos ni runtime; no hubo
+  despliegue ni publicación npm.
+- Validación: instalación congelada, formato focal, ESLint sin warnings, tipos,
+  548 pruebas en 75 archivos, 83,35 % de líneas, gate administrativo 32/32,
+  auditoría LOW sin vulnerabilidades y `git diff --check` superados.
+- Desviación local: `check:ci` se detuvo solo en los 128 archivos CRLF
+  heredados del checkout de Windows. Sus gates restantes pasaron por separado;
+  no se normalizaron archivos fuera del alcance.
+
 ## Orden y dependencias de la segunda ola
 
 1. Ejecutar 005 y 006 primero; son independientes entre sí.
@@ -322,13 +350,17 @@ el **CLI**— apto para producción, ordenado por severidad:
    protection con CI Node 22/24 + CodeQL, y política de triage de alertas.
 3. **014 (P1)** — Preparación operativa Cloudflare: secretos, Access/WAF/Rate
    Limiting en `/admin` y `/api`, egress para el residual DNS, staging y rollback.
-4. **015 (P2)** — Mantenimiento de dependencias: reevaluar `@hono/node-server`
-   (residual no alcanzable) antes del **2026-09-30**, migración deliberada de
-   `agents` y cadencia de auditoría.
+4. **015 (P2, completado)** — Mantenimiento de dependencias: el advisory de
+   Hono quedó corregido con una combinación compatible de MCP 1.30.0 y Hono
+   2.0.12; se automatizó la auditoría y el salto pre-1.0 de `agents` se derivó
+   al plan 016.
+5. **016 (P1)** — Migración deliberada de `agents 0.3.10` a la serie actual,
+   con caracterización de estado, alarms, scheduling, peers y rollback.
 
 Residuales aceptados con seguimiento: DNS rebinding (requiere egress confiable),
-ausencia de rate limiting dentro del Worker (se cubre en el borde, plan 014) y el
-advisory MODERATE de `@hono/node-server` no alcanzable en workerd (plan 015).
+ausencia de rate limiting dentro del Worker (se cubre en el borde, plan 014) y
+la deriva pre-1.0 de `agents` (plan 016). El advisory MODERATE de
+`@hono/node-server` quedó cerrado en el plan 015.
 
 ## Definición de terminado
 
