@@ -1,0 +1,18 @@
+* text=auto eol=lf
+
+# User-owned instance files and the deployment template are outside the forced
+# LF scope; retain Git's existing platform checkout policy for them.
+member/** text !eol
+wrangler.toml text !eol
+
+# Binary assets must never be line-ending normalized.
+*.gif binary
+*.ico binary
+*.jpeg binary
+*.jpg binary
+*.pdf binary
+*.png binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.zip binary
