@@ -27,7 +27,7 @@
     "check": "corepack pnpm format:check && corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test",
     "check:ci": "corepack pnpm format:check && corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test:coverage && corepack pnpm coverage:admin",
     "quality:fix": "corepack pnpm lint:fix && corepack pnpm format",
-    "security:audit": "corepack pnpm audit --audit-level high",
+    "security:audit": "corepack pnpm audit --audit-level low",
     "db:apply": "wrangler d1 execute horizontes_bot_db --file=src/db/schema.sql",
     "db:apply:remote": "wrangler d1 execute horizontes_bot_db --file=src/db/schema.sql --remote",
     "kb:reindex": "tsx scripts/generate-fixtures.ts",
