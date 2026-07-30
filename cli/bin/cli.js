@@ -20,18 +20,33 @@
 import { createInterface } from "node:readline/promises";
 import { emitKeypressEvents } from "node:readline";
 import { stdin as input, stdout as output } from "node:process";
-import { mkdirSync, writeFileSync, readFileSync, rmSync, readdirSync, existsSync, statSync, realpathSync, chmodSync } from "node:fs";
+import { readFileSync, rmSync, readdirSync, existsSync, statSync, realpathSync } from "node:fs";
 import { createServer } from "node:http";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
+import {
+  atomicWriteFile,
+  extractFreshArchive,
+  extractOverArchive,
+  serviceUrl,
+  strictJsonBody,
+  trustedHttpsOrigin,
+  validateInstallSlug,
+  verifyArtifactIntegrity,
+} from "./security.js";
 
-const SERVER = process.env.FORJA_SERVER || process.env.HORIZONTES_SERVER || "https://horizontes-license-server.innovandohorizontes.workers.dev";
+const SERVER = trustedHttpsOrigin(
+  process.env.FORJA_SERVER ||
+    process.env.HORIZONTES_SERVER ||
+    "https://horizontes-license-server.innovandohorizontes.workers.dev",
+  "license server",
+);
 const GET_URL = process.env.FORJA_GET_URL || "https://horizontesia.com";
 // Control plane de cuentas/pairing (app.forjabots.com) — distinto del license server.
-const CLOUD = process.env.FORJA_CLOUD || "https://app.forjabots.com";
+const CLOUD = trustedHttpsOrigin(process.env.FORJA_CLOUD || "https://app.forjabots.com", "control plane");
 const CFG_DIR = join(homedir(), ".forja");
 const CFG_FILE = join(CFG_DIR, "config.json");
 const CREDS_FILE = join(CFG_DIR, "credentials.json");
@@ -326,7 +341,9 @@ const supportLine = () =>
     : `¿Atorado? Mándanos DM en Instagram ${IG_SOPORTE} → ${IG_SOPORTE_URL} · o correo a ${MAIL_SOPORTE} (incluye el correo de tu licencia)`;
 
 function loadCfg() { try { return JSON.parse(readFileSync(CFG_FILE, "utf8")); } catch { return {}; } }
-function saveCfg(o) { mkdirSync(CFG_DIR, { recursive: true }); writeFileSync(CFG_FILE, JSON.stringify(o, null, 2)); }
+function saveCfg(o) {
+  atomicWriteFile(CFG_FILE, JSON.stringify(o, null, 2), { root: CFG_DIR, mode: 0o600 });
+}
 function fingerprint(cfg) { if (!cfg.id) { cfg.id = randomUUID(); saveCfg(cfg); } return cfg.id; }
 // ── banner: ilustración de forja (metal caliente) ───────────────────────────
 const c256 = (n, s) => `\x1b[38;5;${n}m${s}\x1b[0m`;
@@ -421,17 +438,22 @@ function verLt(a, b) {
 // ── llamadas al control plane ────────────────────────────────────────────────
 async function validate(key, cfg) {
   try {
-    const res = await fetchRetry(`${SERVER}/v1/validate`, {
+    const res = await fetchRetry(serviceUrl(SERVER, "/v1/validate"), {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key, fingerprint: fingerprint(cfg) }),
+      body: strictJsonBody({ key, fingerprint: fingerprint(cfg) }, ["key", "fingerprint"]),
+      redirect: "error",
     }, { ms: 10000, tries: 3 });
     return res.json();
   } catch { return { ok: false, reason: "network" }; }
 }
 async function claimFree(email, name, fp) {
-  const res = await fetch(`${SERVER}/v1/claim`, {
+  const res = await fetch(serviceUrl(SERVER, "/v1/claim"), {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: email || undefined, name: name || undefined, fingerprint: fp, source: "cli" }),
+    body: strictJsonBody(
+      { email: email || undefined, name: name || undefined, fingerprint: fp, source: "cli" },
+      ["email", "name", "fingerprint", "source"],
+    ),
+    redirect: "error",
   });
   return res.json();
 }
@@ -439,20 +461,25 @@ async function claimFree(email, name, fp) {
 // Opt-in de lanzamientos: adjunta el correo a la licencia gratis ya emitida. Se llama
 // al FINAL (con el bot ya vivo) desde el skill, solo si el usuario dice que sí.
 async function subscribe(email, key, fp) {
-  const res = await fetch(`${SERVER}/v1/subscribe`, {
+  const res = await fetch(serviceUrl(SERVER, "/v1/subscribe"), {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, key: key || undefined, fingerprint: fp }),
+    body: strictJsonBody({ email, key: key || undefined, fingerprint: fp }, ["email", "key", "fingerprint"]),
+    redirect: "error",
   });
   return res.json();
 }
-async function catalog() { const r = await fetch(`${SERVER}/v1/catalog`); return (await r.json()).bots || []; }
+async function catalog() {
+  const r = await fetch(serviceUrl(SERVER, "/v1/catalog"), { redirect: "error" });
+  return (await r.json()).bots || [];
+}
 
 // Canjea un código de evento (ej. el de la masterclass en pantalla) por una
 // licencia personal temporal. El correo debe ser el MISMO que usará en la comunidad.
 async function redeemCode(code, email, name) {
-  const res = await fetch(`${SERVER}/v1/redeem`, {
+  const res = await fetch(serviceUrl(SERVER, "/v1/redeem"), {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code, email, name }),
+    body: strictJsonBody({ code, email, name }, ["code", "email", "name"]),
+    redirect: "error",
   });
   return res.json();
 }
@@ -461,7 +488,12 @@ async function download(slug, key) {
   // Retry + timeout: un blip de red o un 5xx transitorio (cold start del worker,
   // R2 aún publicándose) NO debe verse como fallo duro. Solo los 4xx (plan,
   // licencia) son deterministas y llegan tal cual, sin reintento.
-  const res = await fetchRetry(`${SERVER}/v1/download/${slug}`, { headers: { "X-License-Key": key } }, { ms: 25000, tries: 3 });
+  const safeSlug = validateInstallSlug(slug);
+  const res = await fetchRetry(
+    serviceUrl(SERVER, `/v1/download/${encodeURIComponent(safeSlug)}`),
+    { headers: { "X-License-Key": key }, redirect: "error" },
+    { ms: 25000, tries: 3 },
+  );
   if (!res.ok) {
     const j = await res.json().catch(() => ({}));
     const code = j.reason || `http_${res.status}`;
@@ -470,12 +502,28 @@ async function download(slug, key) {
     throw err;
   }
   const version = res.headers.get("X-Bot-Version") || "1.0.0";
-  return { buf: Buffer.from(await res.arrayBuffer()), version };
+  const sha256 = res.headers.get("X-Artifact-SHA256");
+  const buf = Buffer.from(await res.arrayBuffer());
+  const integrity = verifyArtifactIntegrity(buf, sha256, {
+    requireChecksum: process.env.FORJA_REQUIRE_ARTIFACT_INTEGRITY === "1",
+  });
+  if (!integrity.verified && !process.env.FORJA_QUIET_INTEGRITY_WARNING) {
+    console.warn(
+      C.yellow(
+        "\n  ⚠ El servidor no publicó X-Artifact-SHA256; se aplican extracción segura y límites, pero la integridad criptográfica queda pendiente.",
+      ),
+    );
+  }
+  return { buf, version, sha256 };
 }
 
 // ── extracción ───────────────────────────────────────────────────────────────
 function writeMarker(dir, slug, version) {
-  writeFileSync(join(dir, MARKER), JSON.stringify({ slug, version, lang: L, updatedAt: new Date().toISOString() }, null, 2));
+  atomicWriteFile(
+    join(dir, MARKER),
+    JSON.stringify({ slug, version, lang: L, updatedAt: new Date().toISOString() }, null, 2),
+    { root: dir, mode: 0o600 },
+  );
 }
 
 // Nichos conocidos → valor de BOT_NICHE. El slug del bot decide el nicho; si no
@@ -505,11 +553,16 @@ const NICHE_SLUGS = {
 // panel + enciende el playbook del giro).
 function stampBotConfig(dir, plan, slug) {
   const wt = join(dir, "wrangler.toml");
-  if (!existsSync(wt)) return;
+  let s;
+  try {
+    s = readFileSync(wt, "utf8");
+  } catch (error) {
+    if (error?.code === "ENOENT") return;
+    throw error;
+  }
   const tier = plan === "free" ? "free" : "pro";
   const lang = L === "en" ? "en" : "es-MX";
   const niche = NICHE_SLUGS[String(slug || "").toLowerCase()] || "generico";
-  let s = readFileSync(wt, "utf8");
   // CRÍTICO: resolver TODO {{BOT_SLUG}} a un slug válido ANTES que nada. wrangler
   // parsea el toml completo en CADA comando (incluido `login`), y un placeholder
   // en bucket_name rompe su regex de nombre → tumba hasta la autenticación. El
@@ -556,15 +609,15 @@ function stampBotConfig(dir, plan, slug) {
   // Si R2 está activo (opcional), normaliza el bucket al nombre canónico. Por default
   // el bloque va comentado en el artifact, así que esto es no-op salvo que se active.
   s = s.replace(/bucket_name\s*=\s*"horizontes-bot-catalog[^"]*"/, `bucket_name = "horizontes-bot-catalog"`);
-  writeFileSync(wt, s);
+  atomicWriteFile(wt, s, { root: dir, mode: 0o600 });
 }
-function extractFresh(buf, slug, version) {
-  const dir = join(process.cwd(), slug);
-  mkdirSync(dir, { recursive: true });
-  const tgz = join(dir, ".artifact.tgz");
-  writeFileSync(tgz, buf);
-  execFileSync("tar", ["-xzf", tgz, "-C", dir]);
-  rmSync(tgz, { force: true });
+function extractFresh(buf, slug, version, sha256) {
+  const safeSlug = validateInstallSlug(slug);
+  const dir = join(process.cwd(), safeSlug);
+  extractFreshArchive(buf, dir, {
+    expectedSha256: sha256,
+    requireChecksum: process.env.FORJA_REQUIRE_ARTIFACT_INTEGRITY === "1",
+  });
   writeMarker(dir, slug, version);
   return dir;
 }
@@ -572,14 +625,11 @@ function extractFresh(buf, slug, version) {
 // wrangler.toml TAMBIÉN se preserva: el del artifact viene en forma plantilla
 // ({{D1_DATABASE_ID}}, tier free, sin marca) — pisarlo rompería el siguiente
 // deploy y borraría nombre/nicho/tier del miembro.
-function extractOver(buf, dir, slug, version) {
-  const tgz = join(dir, ".artifact.tgz");
-  writeFileSync(tgz, buf);
-  execFileSync("tar", ["-xzf", tgz, "-C", dir,
-    "--exclude=./member/*.local.ts", "--exclude=./member/kb", "--exclude=./wrangler.toml",
-    "--exclude=./.dev.vars", "--exclude=./.dev.vars.*", "--exclude=./.env", "--exclude=./.env.*",
-    "--exclude=./.bot-state.json", "--exclude=./.bot-setup.json", `--exclude=./${MARKER}`]);
-  rmSync(tgz, { force: true });
+function extractOver(buf, dir, slug, version, sha256) {
+  extractOverArchive(buf, dir, {
+    expectedSha256: sha256,
+    requireChecksum: process.env.FORJA_REQUIRE_ARTIFACT_INTEGRITY === "1",
+  });
   writeMarker(dir, slug, version);
 }
 
@@ -590,10 +640,18 @@ function extractOver(buf, dir, slug, version) {
 function bumpTierIfUpgraded(dir, plan) {
   if (plan === "free") return false;
   const wt = join(dir, "wrangler.toml");
-  if (!existsSync(wt)) return false;
-  const s = readFileSync(wt, "utf8");
+  let s;
+  try {
+    s = readFileSync(wt, "utf8");
+  } catch (error) {
+    if (error?.code === "ENOENT") return false;
+    throw error;
+  }
   if (!/BOT_TIER\s*=\s*"free"/.test(s)) return false;
-  writeFileSync(wt, s.replace(/BOT_TIER\s*=\s*"free"/g, `BOT_TIER = "pro"`));
+  atomicWriteFile(wt, s.replace(/BOT_TIER\s*=\s*"free"/g, `BOT_TIER = "pro"`), {
+    root: dir,
+    mode: 0o600,
+  });
   return true;
 }
 
@@ -824,8 +882,13 @@ export const catalog: { name: string; price: number; description?: string; sku?:
 // Estampa marca (BOT_NAME/BUSINESS_NAME) y cerebro (LLM_PROVIDER) en wrangler.toml.
 function stampBrandAndBrain(dir, { botName, businessName, provider }) {
   const wt = join(dir, "wrangler.toml");
-  if (!existsSync(wt)) return;
-  let s = readFileSync(wt, "utf8");
+  let s;
+  try {
+    s = readFileSync(wt, "utf8");
+  } catch (error) {
+    if (error?.code === "ENOENT") return;
+    throw error;
+  }
   if (botName) s = s.replace(/BOT_NAME\s*=\s*"[^"]*"/g, `BOT_NAME = "${String(botName).replace(/"/g, "'")}"`);
   if (businessName) s = s.replace(/BUSINESS_NAME\s*=\s*"[^"]*"/g, `BUSINESS_NAME = "${String(businessName).replace(/"/g, "'")}"`);
   // normaliza cualquier LLM_PROVIDER existente al elegido…
@@ -836,23 +899,22 @@ function stampBrandAndBrain(dir, { botName, businessName, provider }) {
     // Insertar DESPUÉS de la línea completa de BOT_TIER (con su comentario), no en medio.
     s = s.replace(/^(BOT_TIER\s*=.*)$/m, `$1\nLLM_PROVIDER = "${provider}"`);
   }
-  writeFileSync(wt, s);
+  atomicWriteFile(wt, s, { root: dir, mode: 0o600 });
 }
 
 // Escribe la config del Starter (member/config.local.ts + wrangler.toml).
 function writeStarterConfig(dir, answers, tier, provider) {
   const botName = answers.businessName ? `Asistente de ${answers.businessName}` : "Asistente";
-  if (existsSync(join(dir, "member"))) {
-    writeFileSync(
-      join(dir, "member", "config.local.ts"),
-      renderMemberConfig({
-        businessName: answers.businessName, botName, lang: L, tier, email: answers.email,
-        what: answers.what, offer: answers.offer, hours: answers.hours,
-        location: answers.location, phone: answers.phone, tone: answers.tone,
-        web: answers.web, pagos: answers.pagos, faq: answers.faq, reglas: answers.reglas,
-      }),
-    );
-  }
+  atomicWriteFile(
+    join(dir, "member", "config.local.ts"),
+    renderMemberConfig({
+      businessName: answers.businessName, botName, lang: L, tier, email: answers.email,
+      what: answers.what, offer: answers.offer, hours: answers.hours,
+      location: answers.location, phone: answers.phone, tone: answers.tone,
+      web: answers.web, pagos: answers.pagos, faq: answers.faq, reglas: answers.reglas,
+    }),
+    { root: dir, mode: 0o600 },
+  );
   stampBrandAndBrain(dir, { botName, businessName: answers.businessName, provider });
   return botName;
 }
@@ -870,14 +932,16 @@ function applyBusinessFlags(dir, flags = {}, tier = "pro") {
   const provider = { claude: "anthropic", anthropic: "anthropic", chatgpt: "openai", openai: "openai", gpt: "openai", grok: "xai", xai: "xai" }[String(flags.cerebro || flags.brain || "").trim().toLowerCase()] || "anthropic";
   const tone = { cercano: "cercano", friendly: "cercano", formal: "formal", divertido: "divertido", playful: "divertido" }[String(flags.tono || "").trim().toLowerCase()] || "";
   const botName = businessName ? (L === "en" ? `${businessName} Assistant` : `Asistente de ${businessName}`) : "Asistente";
-  if (existsSync(join(dir, "member"))) {
-    writeFileSync(join(dir, "member", "config.local.ts"), renderMemberConfig({
+  atomicWriteFile(
+    join(dir, "member", "config.local.ts"),
+    renderMemberConfig({
       businessName, botName, lang: L, tier, email: "",
       what: flags.que, offer: flags.ofrece, hours: flags.horario,
       location: flags.ubicacion, phone: flags.telefono, tone,
       web: flags.web || flags.redes, pagos: flags.pagos, faq: flags.faq, reglas: flags.reglas,
-    }));
-  }
+    }),
+    { root: dir, mode: 0o600 },
+  );
   stampBrandAndBrain(dir, { botName, businessName, provider });
   return true;
 }
@@ -907,10 +971,8 @@ function installAgentSkill(flags = {}) {
   try {
     const dir = join(homedir(), ".claude", "skills", "forja");
     const file = join(dir, "SKILL.md");
-    const existed = existsSync(file);
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(file, AGENT_SKILL);
-    if (!existed) console.log(C.dim("  \u270e guía de Forja instalada para tu agente  \u2192  ~/.claude/skills/forja/"));
+    const result = atomicWriteFile(file, AGENT_SKILL, { root: dir, mode: 0o600 });
+    if (result.created) console.log(C.dim("  \u270e guía de Forja instalada para tu agente  \u2192  ~/.claude/skills/forja/"));
   } catch { /* no romper el flujo por esto */ }
 }
 
@@ -995,9 +1057,9 @@ async function cmdInit(flags = {}) {
     const bot = await pickBot(await catalog(), v.plan, rl, (flags.giro || flags.slug || "").toString().trim().toLowerCase());
     if (!bot) { console.log(C.yellow("  " + t().noInstallable) + "\n"); return; }
     process.stdout.write(C.dim(`\n  ${t().downloading(bot.name)}`));
-    const { buf, version } = await download(bot.slug, key);
+    const { buf, version, sha256 } = await download(bot.slug, key);
     console.log(C.green("✓") + C.dim(` ${(buf.length / 1024).toFixed(0)} KB · v${version}`));
-    const dir = extractFresh(buf, bot.slug, version);
+    const dir = extractFresh(buf, bot.slug, version, sha256);
     stampBotConfig(dir, v.plan, bot.slug);
 
     // Bienvenida con contexto ANTES de las preguntas: qué es Forja, dónde vive el
@@ -1056,9 +1118,9 @@ async function cmdInstall(slug, flags) {
   cfg.key = key; saveCfg(cfg);
   process.stdout.write(C.dim(`  ${t().downloading(slug)}`));
   try {
-    const { buf, version } = await download(slug, key);
+    const { buf, version, sha256 } = await download(slug, key);
     console.log(C.green("✓") + C.dim(` ${(buf.length / 1024).toFixed(0)} KB · v${version}`));
-    const dir = extractFresh(buf, slug, version);
+    const dir = extractFresh(buf, slug, version, sha256);
     stampBotConfig(dir, v.plan, slug);
     applyBusinessFlags(dir, flags, v.plan === "free" ? "free" : "pro");
     warnIfPlaceholders(dir);
@@ -1111,9 +1173,9 @@ async function cmdUpdate(dirArg, flags) {
   if (!verLt(marker.version, bot.version)) { console.log(C.green("\n  ✓ " + t().updUpToDate + "\n")); return; }
 
   process.stdout.write(C.dim(`\n  ${t().downloading("v" + bot.version)}`));
-  const { buf, version } = await download(bot.slug, key);
+  const { buf, version, sha256 } = await download(bot.slug, key);
   console.log(C.green("✓") + C.dim(` ${(buf.length / 1024).toFixed(0)} KB`));
-  extractOver(buf, dir, bot.slug, version);
+  extractOver(buf, dir, bot.slug, version, sha256);
   console.log(C.green(`\n  ✓ ${t().updDone(version)}\n`));
   if (bumpTierIfUpgraded(dir, v.plan)) {
     console.log("  " + C.yellow(t().updTierUp) + "\n");
@@ -1152,7 +1214,9 @@ async function cmdDoctor(dirArg, flags) {
   let wt = "";
   try { wt = readFileSync(join(dir, "wrangler.toml"), "utf8"); } catch {}
   const val = (k) => { const m = wt.match(new RegExp(`^\\s*${k}\\s*=\\s*["']([^"']*)`, "m")); return m ? m[1] : null; };
-  const botName = val("BOT_NAME"), botNiche = val("BOT_NICHE"), baseUrl = val("DASHBOARD_BASE_URL");
+  const botName = val("BOT_NAME");
+  const botNiche = val("BOT_NICHE");
+  const baseUrl = normalizeWorkerUrl(val("DASHBOARD_BASE_URL"));
   if (botName) ok(`Nombre del negocio: ${C.cyan(botName)}`); else warn("BOT_NAME sin definir", "El bot no sabe cómo se llama tu negocio.");
   if (botNiche) ok(`Giro (nicho): ${C.cyan(botNiche)}`); else warn("BOT_NICHE sin definir", "El panel usará el genérico en vez del de tu giro.");
 
@@ -1178,9 +1242,7 @@ async function cmdDoctor(dirArg, flags) {
   // 6) ¿el worker responde?
   if (baseUrl) {
     try {
-      const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), 8000);
-      const r = await fetch(baseUrl.replace(/\/$/, "") + "/admin/overview", { signal: ctrl.signal });
-      clearTimeout(to);
+      const r = await fetchTimeout(`${baseUrl}/admin/overview`, {}, 8000);
       if (r.status === 200 || r.status === 401) ok(`El bot responde en línea (${baseUrl})`);
       else warn(`El bot respondió con HTTP ${r.status}`, "Revisa el último deploy.");
     } catch { warn("El bot no respondió", `¿Ya desplegaste? pnpm deploy · URL: ${baseUrl}`); }
@@ -1406,14 +1468,25 @@ async function cmdSubscribe(flags) {
 
 function loadCreds() { try { return JSON.parse(readFileSync(CREDS_FILE, "utf8")); } catch { return null; } }
 function saveCreds(o) {
-  mkdirSync(CFG_DIR, { recursive: true });
-  writeFileSync(CREDS_FILE, JSON.stringify(o, null, 2), { mode: 0o600 });
-  try { chmodSync(CREDS_FILE, 0o600); } catch {} // mode solo aplica al crear; asegura 0600 si ya existía
+  atomicWriteFile(CREDS_FILE, JSON.stringify(o, null, 2), { root: CFG_DIR, mode: 0o600 });
 }
 
 async function fetchTimeout(url, opts = {}, ms = 8000) {
+  let target;
+  try {
+    target = new URL(String(url));
+  } catch {
+    throw new Error("URL de red inválida");
+  }
+  if (target.protocol !== "https:" || target.username || target.password) {
+    throw new Error("El CLI solo permite destinos HTTPS sin credenciales embebidas");
+  }
   const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), ms);
-  try { return await fetch(url, { ...opts, signal: ctrl.signal }); } finally { clearTimeout(to); }
+  try {
+    return await fetch(target, { ...opts, redirect: opts.redirect || "error", signal: ctrl.signal });
+  } finally {
+    clearTimeout(to);
+  }
 }
 
 // Reintenta llamadas al control plane ante transitorios (red caída, timeout, 5xx)
@@ -1433,7 +1506,9 @@ async function fetchRetry(url, opts = {}, { ms = 8000, tries = 3 } = {}) {
 
 // GET /api/cli/me — ¿de quién es esta sesión? Devuelve { status, ok?, user? }.
 async function cliMe(token) {
-  const r = await fetchTimeout(`${CLOUD}/api/cli/me`, { headers: { Authorization: `Bearer ${token}` } });
+  const r = await fetchTimeout(serviceUrl(CLOUD, "/api/cli/me"), {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   const j = await r.json().catch(() => ({}));
   return { status: r.status, ...j };
 }
@@ -1495,8 +1570,21 @@ function normalizeWorkerUrl(raw) {
   let u = String(raw || "").trim();
   if (!u) return null;
   if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(u)) u = "https://" + u;
-  u = u.replace(/\/+$/, "");
-  try { return new URL(u).protocol === "https:" ? u : null; } catch { return null; }
+  try {
+    const parsed = new URL(u);
+    if (
+      parsed.protocol !== "https:" ||
+      parsed.username ||
+      parsed.password ||
+      parsed.search ||
+      parsed.hash
+    ) {
+      return null;
+    }
+    return parsed.origin;
+  } catch {
+    return null;
+  }
 }
 
 // login — flujo navegador. Levanta un server en 127.0.0.1:puerto-aleatorio, abre
@@ -1683,10 +1771,10 @@ async function cmdPair(dirArg, flags = {}) {
   process.stdout.write(C.dim("  " + t().pairRegistering));
   let reg, regBody = {};
   try {
-    reg = await fetchTimeout(`${CLOUD}/api/bots/register`, {
+    reg = await fetchTimeout(serviceUrl(CLOUD, "/api/bots/register"), {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${creds.token}` },
-      body: JSON.stringify({ name, worker_url: workerUrl }),
+      body: strictJsonBody({ name, worker_url: workerUrl }, ["name", "worker_url"]),
     }, 15000);
     regBody = await reg.json().catch(() => ({}));
   } catch {
@@ -1731,7 +1819,12 @@ async function cmdPair(dirArg, flags = {}) {
   // El pairing YA existe en el servidor: guarda el marker aunque el bot tarde en
   // confirmar (así `doctor` puede verificar después).
   marker.paired = { botId: regBody.bot_id, at: new Date().toISOString() };
-  try { writeFileSync(join(dir, MARKER), JSON.stringify(marker, null, 2)); } catch {}
+  try {
+    atomicWriteFile(join(dir, MARKER), JSON.stringify(marker, null, 2), {
+      root: dir,
+      mode: 0o600,
+    });
+  } catch {}
 
   // Escribe la URL real en DASHBOARD_BASE_URL del wrangler.toml, para que los
   // enlaces del panel apunten bien sin edición manual (mata el ciclo deploy→editar
@@ -1740,7 +1833,9 @@ async function cmdPair(dirArg, flags = {}) {
   try {
     const s = readFileSync(join(dir, "wrangler.toml"), "utf8");
     const next = s.replace(/DASHBOARD_BASE_URL\s*=\s*"[^"]*"/g, `DASHBOARD_BASE_URL = "${workerUrl}"`);
-    if (next !== s) writeFileSync(join(dir, "wrangler.toml"), next);
+    if (next !== s) {
+      atomicWriteFile(join(dir, "wrangler.toml"), next, { root: dir, mode: 0o600 });
+    }
   } catch {}
 
   // Verificación con Bearer: los secretos propagan en una versión nueva del
@@ -1894,4 +1989,21 @@ if (IS_MAIN) {
 }
 
 // Exports para pruebas (no afectan el uso como CLI).
-export { renderMemberConfig, stampBrandAndBrain, writeStarterConfig, select, forgeSplash, installAgentSkill, parseFlags, starterOnboarding, loadCreds, saveCreds, normalizeWorkerUrl, listenLoopback, stampBotConfig, applyBusinessFlags };
+export {
+  applyBusinessFlags,
+  claimFree,
+  forgeSplash,
+  installAgentSkill,
+  listenLoopback,
+  loadCreds,
+  normalizeWorkerUrl,
+  parseFlags,
+  renderMemberConfig,
+  saveCreds,
+  select,
+  stampBotConfig,
+  stampBrandAndBrain,
+  starterOnboarding,
+  subscribe,
+  writeStarterConfig,
+};
