@@ -32,6 +32,7 @@ condiciones de parada y actualizar aquí su estado.
 | 008 | [Elevar cobertura administrativa](./008-elevar-cobertura-admin.md)               |        P2 | COMPLETADO | Ninguna       |
 | 009 | [Autenticar webhooks de canales](./009-autenticar-webhooks-canales.md)           |        P0 | COMPLETADO | Ninguna       |
 | 010 | [Endurecer acceso al panel](./010-endurecer-acceso-panel-admin.md)               |        P2 | COMPLETADO | Ninguna       |
+| 011 | [Higiene de dependencias y EOL](./011-higiene-deps-y-eol.md)                     |        P3 | COMPLETADO | Ninguna       |
 
 Estados permitidos para los planes pendientes: `TODO`, `EN PROGRESO`,
 `COMPLETADO`, `BLOQUEADO: <motivo>` o `RECHAZADO: <motivo>`.
@@ -86,6 +87,31 @@ Implementado el 2026-07-30 en la rama
   heredado en 189 archivos fuera del cambio. El formato focal,
   `git diff --check` y todos los demás gates equivalentes pasan.
 
+## Resultado del plan 011
+
+Implementado el 2026-07-30 en la rama
+`advisor/011-deps-and-eol-hygiene`, creada desde `origin/main` en `c4ba1c7`.
+
+- `.gitattributes` normaliza a LF los archivos de texto y marca explícitamente
+  los binarios habituales. `member/**` y `wrangler.toml` quedan fuera de la
+  conversión forzada para respetar su propiedad y no fueron modificados.
+- La normalización está aislada en `bfd15b6`; el checkout limpio confirma LF
+  en los archivos de proyecto y `format:check` pasa en Windows.
+- Se conserva `agents 0.3.10`. `agents 0.4.0` incorpora MCP 1.26.0, pero es una
+  actualización pre-1.0 con cambios incompatibles para consumidores x402. En
+  su lugar, `pnpm-workspace.yaml` fija de forma compatible
+  `@modelcontextprotocol/sdk 1.26.0`; el lockfile contiene una única versión.
+- `GHSA-345p-7cg4-v4c7` queda corregido: `pnpm audit --audit-level high` pasa
+  con cero vulnerabilidades altas. Antes del cambio reportaba una alta y una
+  moderada.
+- Permanece una vulnerabilidad moderada en `@hono/node-server 1.19.17`
+  (`GHSA-frvp-7c67-39w9`). Forja se ejecuta en workerd y no importa el
+  adaptador Node ni `serve-static`, por lo que esa ruta no es alcanzable. No se
+  fuerza la major 2; revisar antes del 2026-09-30 o al migrar `agents`.
+- Validación en checkout limpio: instalación congelada, formato, ESLint sin
+  avisos, tipos, 526 pruebas en 73 archivos, 83,35 % de líneas y las 32
+  comparaciones del gate administrativo superadas.
+
 ## Orden y dependencias de la segunda ola
 
 1. Ejecutar 005 y 006 primero; son independientes entre sí.
@@ -122,16 +148,13 @@ documentación; se conservaron commits temáticos separados.
 - La auditoría pasó de 6 moderadas + 5 bajas a 1 alta + 1 moderada, sin bajas.
   Desaparecieron los tres avisos directos de `agents`, `uuid`, `x402`, el
   `ai` antiguo y los avisos de `esbuild`.
-- Residual alto: `agents 0.3.10` fija
-  `@modelcontextprotocol/sdk 1.25.2`; `GHSA-345p-7cg4-v4c7` se corrige en 1.26.0.
-  Forja no crea servidores/clientes MCP ni reutiliza transports entre clientes,
-  por lo que la ruta vulnerable no está activa. No se fuerza 1.26.0 fuera del
-  pin exacto del SDK. Revisar antes del 2026-08-29 o cuando Cloudflare publique
-  una versión compatible.
-- Residual moderado: ese MCP admite `@hono/node-server 1.19.17`;
+- El residual alto de `@modelcontextprotocol/sdk 1.25.2`
+  (`GHSA-345p-7cg4-v4c7`) quedó cerrado en el plan 011 mediante un override
+  compatible a 1.26.0, validado con la suite completa.
+- Residual moderado: MCP mantiene `@hono/node-server 1.19.17`;
   `GHSA-frvp-7c67-39w9` requiere 2.0.5. Forja produce un Worker y no usa
   `serve-static` del adaptador Node en producción. No se fuerza la major 2.
-  Revisar en la misma fecha.
+  Revisar antes del 2026-09-30 o al migrar `agents`.
 - Los medios usan hostnames exactos por canal. `MEDIA_ALLOWED_HOSTS` solo
   habilita CDNs variables; comodines, URLs, puertos, hosts locales y redirects
   no autorizados se rechazan.

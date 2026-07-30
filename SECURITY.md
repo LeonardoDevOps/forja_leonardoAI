@@ -102,6 +102,21 @@ riesgo de DNS rebinding o compromiso en un hostname autorizado. Para entornos
 que necesiten eliminar ese residual, usa un Service Binding o proxy de egress
 con resolución DNS y controles de red confiables.
 
+## Dependencias transitivas
+
+La resolución de pnpm fuerza `@modelcontextprotocol/sdk 1.26.0` bajo
+`agents 0.3.10` para incorporar las protecciones de
+`GHSA-345p-7cg4-v4c7` sin adoptar una actualización pre-1.0 incompatible de
+`agents`. El lockfile debe instalarse siempre con `--frozen-lockfile` y
+`pnpm audit --audit-level high` forma parte del control de supply chain.
+
+Permanece un aviso moderado en `@hono/node-server 1.19.17`
+(`GHSA-frvp-7c67-39w9`). En Forja no es alcanzable: el artefacto se ejecuta en
+Cloudflare workerd y no importa el adaptador Node ni su `serve-static`
+vulnerable en Windows. No se fuerza la major 2 transitiva. El residual debe
+reevaluarse antes del 2026-09-30 o durante la siguiente migración de `agents`,
+lo que ocurra primero.
+
 ## Respuesta
 
 Los mantenedores intentarán confirmar la recepción, evaluar severidad y acordar una
