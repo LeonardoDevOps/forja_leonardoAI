@@ -35,7 +35,7 @@ condiciones de parada y actualizar aquí su estado.
 | 011 | [Higiene de dependencias y EOL](./011-higiene-deps-y-eol.md)                     |        P3 | COMPLETADO | Ninguna       |
 | 012 | [Revisión de seguridad del CLI](./012-revision-seguridad-cli.md)                 |        P0 | COMPLETADO | Ninguna       |
 | 013 | [Controles de seguridad del repo](./013-controles-seguridad-repo-github.md)      |        P1 | COMPLETADO | 012           |
-| 014 | [Preparación operativa Cloudflare](./014-preparacion-operativa-cloudflare.md)    |        P1 | TODO       | Ninguna       |
+| 014 | [Preparación operativa Cloudflare](./014-preparacion-operativa-cloudflare.md)    |        P1 | BLOQUEADO  | Ninguna       |
 | 015 | [Mantenimiento de dependencias](./015-mantenimiento-dependencias-residuales.md)  |        P2 | TODO       | Ninguna       |
 
 Estados permitidos para los planes pendientes: `TODO`, `EN PROGRESO`,
@@ -170,6 +170,35 @@ Implementado el 2026-07-30 en la rama
 - Dependabot expone el aviso `MEDIUM` ya conocido de `@hono/node-server`, con
   seguimiento en el plan 015; no se forzó una major transitiva fuera de
   alcance.
+
+## Resultado parcial del plan 014
+
+Implementación de repositorio completada el 2026-07-30 en la rama
+`advisor/014-cloudflare-operations`, creada desde `origin/main` en `936e7dc`.
+La activación externa queda bloqueada hasta disponer de staging y acceso
+Cloudflare:
+
+- se añadió un runbook de secretos, Access/WAF/Rate Limiting, egress, staging,
+  promoción gradual, rollback y monitorización;
+- un preflight offline valida evidencia redactada sin conectar, desplegar ni
+  leer valores de secretos;
+- la plantilla de evidencia falla hasta demostrar cinco nombres de secretos,
+  controles de `/admin` y `/api`, 14 pruebas, rollback y monitorización;
+- `.forja-reports/` queda ignorado para impedir que la evidencia operativa se
+  publique por accidente;
+- el riesgo DNS se acepta temporalmente hasta el 2026-09-30, con reevaluación
+  obligatoria;
+- no se tocaron `member/`, `wrangler.toml`, secretos, runtime ni CLI;
+- no se afirma que los controles externos estén activos: faltan configuración
+  de staging/producción, cuenta/zona/Worker, plan contratado, cuentas de prueba
+  y versión estable para rollback.
+
+Validación: formato focal, ESLint sin warnings, tipos, 7 pruebas focales, 548
+pruebas completas en 75 archivos, 83,35 % de líneas, gate administrativo 32/32,
+auditoría sin vulnerabilidades altas y `git diff --check` superados.
+`check:ci` se detuvo solo por 128 archivos CRLF heredados y ajenos al alcance.
+La ejecución externa se desbloquea cuando un operador completa el runbook y el
+gate `cloudflare:preflight` queda verde.
 
 ## Orden y dependencias de la segunda ola
 

@@ -14,6 +14,11 @@
 - **Categoría**: operación / plataforma
 - **Origen del hallazgo**: Informe 2026-07-30 §9 (P1 — operación Cloudflare) y residuales §6
 - **Planificado en**: commit `f7fdd77`, 2026-07-30
+- **Ejecución en repositorio**: COMPLETADA el 2026-07-30
+- **Estado operativo**: BLOQUEADO — faltan staging, identificadores/acceso
+  Cloudflare y autorización para desplegar
+- **Rama**: `advisor/014-cloudflare-operations`, creada desde `origin/main`
+  (`936e7dc`)
 
 ## Por qué importa
 
@@ -86,10 +91,95 @@ dashboards/alertas mínimas.
 
 - [ ] Los cinco secretos configurados y rotación documentada (sin exponer valores).
 - [ ] Access/WAF/Rate Limiting activo delante de `/admin` y `/api`.
-- [ ] Residual DNS cerrado con egress confiable o aceptado con fecha de revisión.
+- [x] Residual DNS cerrado con egress confiable o aceptado con fecha de revisión.
 - [ ] Staging prueba positivos y negativos de webhooks/panel.
-- [ ] Runbook de despliegue, rollback y monitorización documentado.
-- [ ] `plans/README.md` actualizado.
+- [x] Runbook de despliegue, rollback y monitorización documentado.
+- [x] `plans/README.md` actualizado.
+
+## Resultado de la ejecución en el repositorio
+
+### Controles implementados
+
+- `docs/cloudflare-production-runbook.md` documenta separación obligatoria de
+  staging/producción, inventario y rotación sin valores, Access/WAF/Rate
+  Limiting por ruta, pruebas positivas y negativas, promoción gradual, rollback
+  y monitorización.
+- `scripts/cloudflare-production-check.ts` añade un gate offline y fail-closed
+  que valida evidencia redactada. No consulta Cloudflare, no lee `.env`,
+  `.dev.vars` ni valores de secretos y no despliega.
+- `docs/cloudflare-production-evidence.example.json` aporta una plantilla que
+  falla hasta que un operador demuestre cada control. La evidencia real se
+  guarda en `.forja-reports/`, ahora ignorado por Git.
+- El gate exige los cinco nombres del plan, protección y rate limiting de
+  `/admin` y `/api`, decisión de egress, 14 pruebas de staging, versión estable
+  de rollback y tres señales mínimas de monitorización.
+- Siete pruebas unitarias cubren evidencia válida, entrada malformada, secretos
+  ausentes, borde incompleto, aceptación DNS vencida, prueba negativa fallida,
+  rollback y monitorización incompletos.
+- `README.md` y `SECURITY.md` enlazan el runbook, describen el gate y alinean
+  Node 22/24 con la CI protegida por el Plan 013.
+
+### Decisión DNS
+
+El riesgo residual se acepta temporalmente hasta el **2026-09-30**. El
+repositorio no contiene un proxy administrado ni un Service Binding, y no hay
+cuenta, red o staging sobre los que diseñar y demostrar egress confiable. Se
+mantienen HTTPS, hosts exactos, revalidación de redirects y límites de descarga.
+La promoción debe bloquearse si el modelo de amenaza exige cerrar el riesgo
+antes de esa fecha.
+
+### Bloqueos externos
+
+No se ejecutaron mutaciones en Cloudflare porque:
+
+- `wrangler.toml` conserva placeholders y no define entornos nombrados de
+  staging/producción;
+- no se proporcionaron Worker, dominio, zone/account IDs, cuentas de prueba ni
+  una versión estable para rollback;
+- no se verificó el plan contratado para Access/WAF/Rate Limiting;
+- la instrucción original prohíbe leer/modificar secretos y desplegar;
+- probar sin staging podría enviar tráfico a usuarios reales, una condición de
+  parada expresa del plan.
+
+Por tanto, no se afirma que secretos, políticas de borde, pruebas o dashboards
+estén activos. El operador desbloquea el plan al completar el runbook y obtener
+un resultado verde de:
+
+```bash
+pnpm cloudflare:preflight -- \
+  --evidence .forja-reports/plan014-cloudflare-evidence.json
+```
+
+### Desviaciones
+
+- La instrucción inicial menciona `wrangler secret put`, pero Wrangler 4.105.0
+  y la documentación vigente confirman que ese comando crea y despliega una
+  versión inmediatamente. El runbook prefiere `wrangler versions secret put`
+  seguido de una promoción explícita para respetar staging y la prohibición de
+  despliegue directo.
+- No se modificó el código del Worker, el CLI, `member/` ni `wrangler.toml`. El
+  único TypeScript nuevo es tooling operativo offline.
+
+## Validación
+
+- Prettier focal: PASS.
+- ESLint con cero warnings: PASS.
+- TypeScript `--noEmit`: PASS.
+- Pruebas focales: 7/7 PASS.
+- Suite completa: 75 archivos y 548 pruebas, todas PASS; cobertura global de
+  83,35 % de líneas.
+- Gate administrativo: PASS, 32/32 comparaciones.
+- Auditoría con umbral `high`: PASS; solo permanece el `MEDIUM` conocido de
+  `@hono/node-server`.
+- El ejemplo incompleto falla cerrado como está diseñado.
+- `git diff --check`: PASS.
+- No se leyó ni modificó ningún secreto, no se conectó a Cloudflare y no se
+  realizó ningún despliegue.
+
+`check:ci` se detuvo únicamente en el formato global porque este checkout de
+Windows materializa 128 archivos heredados con CRLF pese a que Git y
+`.gitattributes` declaran LF. No se normalizaron archivos fuera de alcance; el
+formato focal y todos los demás gates equivalentes sí pasaron.
 
 ## Condiciones de parada
 
