@@ -48,6 +48,23 @@ Los problemas de configuración que requieren exponer deliberadamente el panel, 
 credenciales débiles o modificar el código pueden quedar fuera de alcance, pero se
 agradece reportarlos de forma privada si producen un riesgo inesperado.
 
+## Autenticación de webhooks
+
+Forja verifica la autenticidad antes de parsear o enrutar mensajes:
+
+- Telegram compara `X-Telegram-Bot-Api-Secret-Token` con
+  `TELEGRAM_WEBHOOK_SECRET`;
+- Twilio recalcula `X-Twilio-Signature` con `TWILIO_AUTH_TOKEN`, la URL pública
+  exacta y todos los parámetros del formulario;
+- ManyChat compara `X-Forja-Webhook-Secret` con
+  `MANYCHAT_WEBHOOK_SECRET`;
+- Meta y WhatsApp Cloud validan `X-Hub-Signature-256`.
+
+La ausencia de configuración siempre rechaza la ingestión. Twilio responde con
+TwiML vacío para evitar retries, pero no entrega el evento al agente. Las
+instalaciones existentes deben configurar los nuevos secrets y volver a
+registrar sus webhooks como parte de la actualización.
+
 ## Descarga de medios y egress
 
 Forja valida las URLs de audio e imagen con una política cerrada por canal:

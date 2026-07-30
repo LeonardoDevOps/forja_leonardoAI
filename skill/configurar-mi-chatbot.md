@@ -399,27 +399,43 @@ uno → se pone VERDE en `/admin/conexiones` → sigues. Todas las guías viven 
 2. "Mándale el mensaje `/newbot`."
 3. "Te va a preguntar el **nombre** del bot. ¿Qué nombre quieres que aparezca?"
 4. "Ahora te pide un **username**. Tiene que terminar en `_bot` (ej. `panaderia_luna_bot`). ¿Cuál quieres?"
-5. "BotFather te da un **token** (una cadena larga). Pégalo aquí."
-6. Guarda el token (sin mostrarlo en el chat):
+5. "BotFather te da un **token** (una cadena larga). No lo pegues en este chat:
+   guárdalo directamente desde tu terminal."
+6. Pide al miembro que ejecute el prompt interactivo; no leas ni repitas el
+   valor:
    ```bash
    wrangler secret put TELEGRAM_BOT_TOKEN
    ```
-7. **Registra el webhook** (esto es lo que hace que tu bot reciba los mensajes):
+7. Pide al miembro que genere una contraseña aleatoria distinta y la guarde,
+   también de forma interactiva:
    ```bash
-   curl "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook?url=$WORKER_URL/webhooks/telegram"
+   wrangler secret put TELEGRAM_WEBHOOK_SECRET
    ```
-   Verifica que la respuesta diga `"ok":true`. (Sustituye `$TELEGRAM_BOT_TOKEN` y `$WORKER_URL` por los valores reales.)
-8. ✅ Dile al miembro: "Recarga tu panel → **Conexiones**. Telegram debe estar en **verde**." Si no, revisa el troubleshooting antes de seguir.
+8. **Registra el webhook autenticado** desde la terminal del miembro. Usa el
+   mismo `TELEGRAM_WEBHOOK_SECRET` como `secret_token`; no pidas ni muestres
+   ninguno de los dos valores:
+   ```bash
+   curl --request POST "https://api.telegram.org/bot<TU_TELEGRAM_BOT_TOKEN>/setWebhook" \
+     --data-urlencode "url=$WORKER_URL/webhooks/telegram" \
+     --data-urlencode "secret_token=<TU_TELEGRAM_WEBHOOK_SECRET>"
+   ```
+   Verifica únicamente que la respuesta diga `"ok":true`.
+9. ✅ Dile al miembro: "Recarga tu panel → **Conexiones**. Telegram debe estar en **verde**." Si no, revisa el troubleshooting antes de seguir.
 
 #### Sub-flujo ManyChat
 
-Lee `skill/references/channel-setup-guides/manychat-webhook.md` y sigue esos pasos. El secret a guardar es:
+Lee `skill/references/channel-setup-guides/manychat-webhook.md` y sigue esos
+pasos. La API saliente y el webhook usan secrets distintos:
 
 ```bash
 wrangler secret put MANYCHAT_API_KEY
+wrangler secret put MANYCHAT_WEBHOOK_SECRET
 ```
 
-La URL del webhook que se pega en el flujo de ManyChat (External Request) es: `$WORKER_URL/webhooks/manychat`.
+La URL del webhook que se pega en el flujo de ManyChat (External Request) es:
+`$WORKER_URL/webhooks/manychat`. El request debe llevar
+`X-Forja-Webhook-Secret: <MANYCHAT_WEBHOOK_SECRET>`. El miembro introduce el
+valor directamente en ManyChat; no lo pega en este chat.
 
 ✅ "Recarga tu panel → **Conexiones**. ManyChat debe estar en **verde**."
 
@@ -438,6 +454,12 @@ wrangler secret put TWILIO_WA_FROM
 ```
 
 La URL del webhook que el miembro pega en la configuración del sender de WhatsApp en Twilio es: `$WORKER_URL/webhooks/twilio`.
+
+Forja valida automáticamente la firma de Twilio con `TWILIO_AUTH_TOKEN`. La URL
+de la consola debe coincidir exactamente con
+`DASHBOARD_BASE_URL + /webhooks/twilio`. Si hay proxy o dominio personalizado,
+guarda la URL exacta con `wrangler secret put TWILIO_WEBHOOK_URL` antes de
+publicar.
 
 > **¿Instalar el Twilio CLI?** Es opcional (ver el comparador). Default: hazlo por
 > el dashboard de Twilio sin instalar nada. Solo instala el CLI (`npm i -g twilio-cli`)
@@ -600,9 +622,9 @@ Con el bot YA vivo y probado (no antes), remata así — sin presión, ya probó
 
 - `ANTHROPIC_API_KEY` **o** `OPENAI_API_KEY` — requerido (el cerebro del bot, según el proveedor elegido en la Fase 1; se puede cambiar después desde el panel → Configuración → Modelo de IA).
 - `DASHBOARD_PASSWORD` — requerido en Pro (Basic Auth del panel; usuario fijo `admin`).
-- `TELEGRAM_BOT_TOKEN` — si usa Telegram.
+- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` — si usa Telegram.
 - `OWNER_TELEGRAM_CHAT_ID` — chat_id del dueño para los avisos por Telegram (el dueño le da `/start` a su propio bot).
-- `MANYCHAT_API_KEY` — si usa ManyChat.
+- `MANYCHAT_API_KEY`, `MANYCHAT_WEBHOOK_SECRET` — si usa ManyChat.
 - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WA_FROM` — si usa WhatsApp por Twilio.
 - `TWILIO_HANDOFF_CONTENT_SID`, `OWNER_WA_NUMBER` — aviso al dueño por WhatsApp con plantilla aprobada (opcional, Pro).
 - `RESEND_API_KEY`, `OWNER_EMAIL` — aviso al dueño por correo (opcional).

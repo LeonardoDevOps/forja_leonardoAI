@@ -161,6 +161,24 @@ sigue siendo un riesgo residual. Instalaciones con requisitos estrictos deben
 añadir un egress confiable mediante un Service Binding o proxy que aplique
 políticas de resolución y red.
 
+### Autenticidad de webhooks
+
+Los webhooks entrantes se validan antes de parsear o activar el agente:
+
+- Telegram exige el `secret_token` registrado con `setWebhook` y lo compara
+  con `TELEGRAM_WEBHOOK_SECRET`.
+- Twilio valida `X-Twilio-Signature` con `TWILIO_AUTH_TOKEN` y la URL pública
+  exacta. Si usas proxy o dominio personalizado, configura
+  `TWILIO_WEBHOOK_URL`.
+- ManyChat exige el header `X-Forja-Webhook-Secret` con
+  `MANYCHAT_WEBHOOK_SECRET`, también durante el aprendizaje temporal.
+- Meta y WhatsApp Cloud validan `X-Hub-Signature-256` con su App Secret.
+
+Todos los canales fallan cerrados cuando falta su secreto. Al actualizar una
+instalación existente, guarda los nuevos secrets y vuelve a registrar/configurar
+el webhook antes de enviar tráfico. Nunca pegues secretos en chats, código,
+logs o `wrangler.toml`; usa `wrangler secret put`.
+
 ---
 
 ## 🤝 Contribuir

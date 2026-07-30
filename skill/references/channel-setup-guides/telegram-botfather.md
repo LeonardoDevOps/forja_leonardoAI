@@ -16,7 +16,7 @@ eso lo recomendamos para empezar y para probar tu bot.
 
 1. Crear tu bot con **@BotFather** y obtener el **token**.
 2. Guardar ese token como secret `TELEGRAM_BOT_TOKEN`.
-3. Conectar tu bot al Worker (el "webhook").
+3. Crear `TELEGRAM_WEBHOOK_SECRET` y registrar el webhook autenticado.
 4. Obtener tu **chat ID** para recibir los avisos cuando un cliente quiera
    hablar contigo (handoff).
 
@@ -68,27 +68,42 @@ Enter. (No se va a ver en pantalla mientras lo pegas; es normal por seguridad.)
 
 ---
 
-## Paso 3 — Publicar el bot y conectar el webhook
+## Paso 3 — Crear el secreto y conectar el webhook
 
 El "webhook" es el puente que le dice a Telegram: _"cuando alguien me escriba,
-manda el mensaje a mi Worker"_. Tu Worker lo configura solo al publicarse.
+manda el mensaje a mi Worker"_. Forja solo acepta esos mensajes si Telegram
+incluye una contraseña exclusiva del webhook.
 
-1. Publica tu bot con:
+1. Genera una contraseña aleatoria de entre 32 y 64 caracteres y guárdala en tu
+   gestor de contraseñas. No uses el token del bot como contraseña del webhook.
+2. Guarda el valor mediante el prompt seguro de Wrangler:
+
+   ```bash
+   pnpm exec wrangler secret put TELEGRAM_WEBHOOK_SECRET
+   ```
+
+   No pegues el valor en un chat, archivo o argumento de línea de comandos.
+
+3. Publica el bot para que el Worker reciba el nuevo secret:
 
    ```bash
    pnpm run deploy
    ```
 
-2. Al terminar, el Worker registra el webhook automáticamente apuntando a:
+4. Registra el webhook desde tu propia terminal. Sustituye los marcadores
+   localmente; usa exactamente el mismo `TELEGRAM_WEBHOOK_SECRET` que guardaste
+   en Cloudflare:
 
+   ```bash
+   curl --request POST "https://api.telegram.org/bot<TU_TELEGRAM_BOT_TOKEN>/setWebhook" \
+     --data-urlencode "url=https://TU-WORKER.workers.dev/webhooks/telegram" \
+     --data-urlencode "secret_token=<TU_TELEGRAM_WEBHOOK_SECRET>"
    ```
-   https://TU-WORKER.workers.dev/webhooks/telegram
-   ```
 
-   (Esa dirección sale de la variable `DASHBOARD_BASE_URL` de tu
-   `wrangler.toml`.)
+   No envíes los valores reales a otra persona o IA. La respuesta debe indicar
+   `"ok": true`.
 
-3. **Pruébalo**: abre tu bot en Telegram (búscalo por el username que elegiste,
+5. **Pruébalo**: abre tu bot en Telegram (búscalo por el username que elegiste,
    ej. `@tacoselguero_bot`), toca **Start** y mándale un mensaje. Si te
    contesta, ya quedó conectado.
 
@@ -190,6 +205,7 @@ Business aprobado.
 | Para qué sirve                           | Secret                                                      | De dónde sale                              |
 | ---------------------------------------- | ----------------------------------------------------------- | ------------------------------------------ |
 | Conectar tu bot a Telegram               | `TELEGRAM_BOT_TOKEN`                                        | @BotFather (Paso 1)                        |
+| Autenticar el webhook de Telegram        | `TELEGRAM_WEBHOOK_SECRET`                                   | Contraseña aleatoria propia (Paso 3)       |
 | Avisos de handoff a ti (default, gratis) | `OWNER_TELEGRAM_CHAT_ID`                                    | Tu dashboard tras mandar `/start` (Paso 4) |
 | Avisos por correo (opcional)             | `RESEND_API_KEY`, `OWNER_EMAIL`                             | resend.com                                 |
 | WhatsApp nativo (opcional, Pro)          | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WA_FROM` | Consola de Twilio                          |
@@ -205,7 +221,8 @@ Business aprobado.
 
 - [ ] Creé el bot con @BotFather y copié el token.
 - [ ] Guardé `TELEGRAM_BOT_TOKEN` con `wrangler secret put`.
-- [ ] Corrí `pnpm run deploy` y el webhook quedó conectado.
+- [ ] Generé y guardé `TELEGRAM_WEBHOOK_SECRET` sin compartirlo.
+- [ ] Registré el webhook con `secret_token` y Telegram respondió `"ok": true`.
 - [ ] Le mandé un mensaje a mi bot y me respondió.
 - [ ] Mandé `/start`, copié mi chat ID del dashboard y guardé
       `OWNER_TELEGRAM_CHAT_ID`.

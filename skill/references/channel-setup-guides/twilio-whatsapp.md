@@ -117,6 +117,19 @@ Para configurar el webhook en Twilio:
 - **Si usas el Sandbox:** ve a **Messaging → Try it out → Send a WhatsApp message → Sandbox settings**. En el campo **"When a message comes in"** pega tu URL `https://TU-WORKER.workers.dev/webhooks/twilio` y déjalo en método **POST**. Guarda.
 - **Si usas un número real:** ve a **Messaging → Senders → WhatsApp senders**, abre tu número, y en la configuración de mensajes entrantes pega la misma URL `https://TU-WORKER.workers.dev/webhooks/twilio` con método **POST**. Guarda.
 
+Forja valida automáticamente `X-Twilio-Signature` con tu
+`TWILIO_AUTH_TOKEN`. La URL guardada en Twilio debe coincidir **exactamente** con
+`DASHBOARD_BASE_URL + /webhooks/twilio` (incluidos dominio, path y barra final).
+Si un proxy o dominio personalizado hace que sean distintas, guarda la URL
+exacta configurada en Twilio como `TWILIO_WEBHOOK_URL` antes de publicar:
+
+```bash
+pnpm wrangler secret put TWILIO_WEBHOOK_URL
+```
+
+Aunque la URL no sea confidencial, el comando interactivo evita editar
+plantillas. Una firma ausente o incorrecta recibe TwiML vacío y no llega al bot.
+
 ### Paso 8 — Prueba
 
 1. Desde otro teléfono, mándale un mensaje a tu número de WhatsApp de Twilio (o al del sandbox si estás usando ese, recordando "unirte" primero).
@@ -136,13 +149,15 @@ Telegram es la forma más rápida y gratis de probar tu bot. También sirve para
 3. Te pedirá un **nombre** (lo que verá la gente) y un **username** (tiene que terminar en `bot`, por ejemplo `mi_negocio_bot`).
 4. Al terminar, BotFather te da un **token** largo, algo como `123456789:AAH...`. Ese es tu **TELEGRAM_BOT_TOKEN**.
 
-### Paso 2 — Guarda el token
+### Paso 2 — Guarda el token y el secreto del webhook
 
 ```bash
 pnpm wrangler secret put TELEGRAM_BOT_TOKEN
+pnpm wrangler secret put TELEGRAM_WEBHOOK_SECRET
 ```
 
-Pega el token cuando te lo pida.
+Pega cada valor cuando te lo pida. `TELEGRAM_WEBHOOK_SECRET` debe ser una
+contraseña aleatoria distinta del token y no debe compartirse en chats.
 
 ### Paso 3 — Conecta el webhook
 
@@ -152,13 +167,17 @@ Tu bot escucha los mensajes de Telegram en esta ruta:
 https://TU-WORKER.workers.dev/webhooks/telegram
 ```
 
-Para que Telegram le avise a tu bot, hay que registrar ese webhook una vez. Claude Code puede hacerlo por ti, o tú puedes pegar esta dirección en el navegador (cambiando el token y la URL del Worker):
+Para que Telegram le avise a tu bot, registra el webhook desde tu propia
+terminal con el mismo `TELEGRAM_WEBHOOK_SECRET` guardado en Cloudflare:
 
-```
-https://api.telegram.org/bot<TU_TELEGRAM_BOT_TOKEN>/setWebhook?url=https://TU-WORKER.workers.dev/webhooks/telegram
+```bash
+curl --request POST "https://api.telegram.org/bot<TU_TELEGRAM_BOT_TOKEN>/setWebhook" \
+  --data-urlencode "url=https://TU-WORKER.workers.dev/webhooks/telegram" \
+  --data-urlencode "secret_token=<TU_TELEGRAM_WEBHOOK_SECRET>"
 ```
 
-Si ves un mensaje que dice `"ok":true`, quedó conectado.
+Sustituye los marcadores localmente y no pegues valores reales en un chat. Si
+ves un mensaje que dice `"ok":true`, quedó conectado.
 
 ### Paso 4 — Cómo obtener tu OWNER_TELEGRAM_CHAT_ID (para recibir avisos)
 
@@ -192,13 +211,15 @@ Si ya manejas tu negocio con **ManyChat**, puedes conectar tu bot a Instagram, F
 2. Ve a **Settings (⚙️) → API**.
 3. Copia tu **API Key** (es una cadena larga de letras y números).
 
-### Paso 2 — Guarda la API Key
+### Paso 2 — Guarda la API Key y el secreto del webhook
 
 ```bash
 pnpm wrangler secret put MANYCHAT_API_KEY
+pnpm wrangler secret put MANYCHAT_WEBHOOK_SECRET
 ```
 
-Pega la API Key cuando te lo pida.
+La API Key permite responder mediante ManyChat. El webhook usa una contraseña
+aleatoria distinta, guardada como `MANYCHAT_WEBHOOK_SECRET`.
 
 ### Paso 3 — Conecta el webhook
 
@@ -208,19 +229,22 @@ Tu bot escucha a ManyChat en:
 https://TU-WORKER.workers.dev/webhooks/manychat
 ```
 
-En ManyChat, dentro de tu **Flow** o **Automation**, agrega una acción de tipo **External Request / Webhook** (Dynamic Block o "Request"), apuntando a esa URL con método **POST**, en el punto donde quieras que conteste tu bot. Guarda y publica el flujo.
+En ManyChat, dentro de tu **Flow** o **Automation**, agrega una acción de tipo
+**External Request / Webhook** apuntando a esa URL con método **POST**. Añade el
+header `X-Forja-Webhook-Secret` con el mismo valor de
+`MANYCHAT_WEBHOOK_SECRET`. Guarda y publica el flujo.
 
 ---
 
 ## Resumen — qué secret corresponde a cada canal
 
-| Canal                                 | Secret(s) de wrangler                                       | Para qué sirve                                        |
-| ------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------- |
-| **Twilio WhatsApp**                   | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WA_FROM` | Credenciales y número desde el que responde el bot    |
-| **Twilio WhatsApp (aviso a ti, Pro)** | `TWILIO_HANDOFF_CONTENT_SID`, `OWNER_WA_NUMBER`             | Plantilla aprobada + tu número para recibir avisos    |
-| **Telegram**                          | `TELEGRAM_BOT_TOKEN`                                        | Token del bot creado con @BotFather                   |
-| **Telegram (aviso a ti)**             | `OWNER_TELEGRAM_CHAT_ID`                                    | Tu chat id para recibir DMs del bot                   |
-| **ManyChat**                          | `MANYCHAT_API_KEY`                                          | Conexión con Instagram/Facebook/WhatsApp vía ManyChat |
+| Canal                                 | Secret(s) de wrangler                                       | Para qué sirve                                     |
+| ------------------------------------- | ----------------------------------------------------------- | -------------------------------------------------- |
+| **Twilio WhatsApp**                   | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WA_FROM` | Credenciales y número desde el que responde el bot |
+| **Twilio WhatsApp (aviso a ti, Pro)** | `TWILIO_HANDOFF_CONTENT_SID`, `OWNER_WA_NUMBER`             | Plantilla aprobada + tu número para recibir avisos |
+| **Telegram**                          | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`             | Token del bot + autenticación del webhook          |
+| **Telegram (aviso a ti)**             | `OWNER_TELEGRAM_CHAT_ID`                                    | Tu chat id para recibir DMs del bot                |
+| **ManyChat**                          | `MANYCHAT_API_KEY`, `MANYCHAT_WEBHOOK_SECRET`               | API saliente + autenticación del webhook           |
 
 ### URLs de webhook (por canal)
 
