@@ -104,18 +104,20 @@ con resolución DNS y controles de red confiables.
 
 ## Dependencias transitivas
 
-La resolución de pnpm fuerza `@modelcontextprotocol/sdk 1.26.0` bajo
-`agents 0.3.10` para incorporar las protecciones de
-`GHSA-345p-7cg4-v4c7` sin adoptar una actualización pre-1.0 incompatible de
-`agents`. El lockfile debe instalarse siempre con `--frozen-lockfile` y
-`pnpm audit --audit-level high` forma parte del control de supply chain.
+La resolución de pnpm fija `@modelcontextprotocol/sdk 1.30.0` bajo
+`agents 0.3.10`. Esa versión mantiene las protecciones de
+`GHSA-345p-7cg4-v4c7` y admite de forma oficial
+`@hono/node-server ^1.19.9 || ^2.0.5`. El override de Hono selecciona 2.0.12 y
+cierra `GHSA-frvp-7c67-39w9` sin actualizar `agents` a una serie pre-1.0
+incompatible.
 
-Permanece un aviso moderado en `@hono/node-server 1.19.17`
-(`GHSA-frvp-7c67-39w9`). En Forja no es alcanzable: el artefacto se ejecuta en
-Cloudflare workerd y no importa el adaptador Node ni su `serve-static`
-vulnerable en Windows. No se fuerza la major 2 transitiva. El residual debe
-reevaluarse antes del 2026-09-30 o durante la siguiente migración de `agents`,
-lo que ocurra primero.
+El lockfile debe instalarse siempre con `--frozen-lockfile`.
+`pnpm security:audit` revisa desde severidad LOW y el workflow
+`Dependency Audit` ejecuta semanalmente la instalación, todos los gates de
+calidad y la auditoría. La política, cadencia y registro de overrides están en
+la [guía de mantenimiento](./docs/dependency-maintenance.md). La migración
+deliberada de `agents` se mantiene separada en el
+[plan 016](./plans/016-migrar-agents-0-20.md).
 
 ## Gobernanza de alertas y controles del repositorio
 
