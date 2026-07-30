@@ -33,6 +33,10 @@ condiciones de parada y actualizar aquí su estado.
 | 009 | [Autenticar webhooks de canales](./009-autenticar-webhooks-canales.md)           |        P0 | COMPLETADO | Ninguna       |
 | 010 | [Endurecer acceso al panel](./010-endurecer-acceso-panel-admin.md)               |        P2 | COMPLETADO | Ninguna       |
 | 011 | [Higiene de dependencias y EOL](./011-higiene-deps-y-eol.md)                     |        P3 | COMPLETADO | Ninguna       |
+| 012 | [Revisión de seguridad del CLI](./012-revision-seguridad-cli.md)                 |        P0 | TODO       | Ninguna       |
+| 013 | [Controles de seguridad del repo](./013-controles-seguridad-repo-github.md)      |        P1 | TODO       | 012           |
+| 014 | [Preparación operativa Cloudflare](./014-preparacion-operativa-cloudflare.md)    |        P1 | TODO       | Ninguna       |
+| 015 | [Mantenimiento de dependencias](./015-mantenimiento-dependencias-residuales.md)  |        P2 | TODO       | Ninguna       |
 
 Estados permitidos para los planes pendientes: `TODO`, `EN PROGRESO`,
 `COMPLETADO`, `BLOQUEADO: <motivo>` o `RECHAZADO: <motivo>`.
@@ -217,6 +221,30 @@ sobre el plan 007 completado.
 - La auditoría inicial detectó vulnerabilidades altas, tanto en herramientas de desarrollo como en cadenas
   transitivas de runtime; se evaluarán actualizaciones mínimas compatibles.
 - La CI inicial solo validaba Node 20, tipos y tests, sin formato, lint, cobertura ni controles de supply chain.
+
+## Cuarta ola — remediación del informe post-merge (2026-07-30)
+
+Planificada a partir del **Informe de auditoría y endurecimiento para producción**
+(commit de referencia `f7fdd77`, tras fusionar el informe). Las olas 001–011 están
+completadas; esta recoge lo pendiente antes de considerar el sistema —y en especial
+el **CLI**— apto para producción, ordenado por severidad:
+
+1. **012 (P0)** — Revisión de seguridad **dedicada del CLI**: 14 alertas CodeQL
+   abiertas (5 HIGH + 9 MEDIUM), todas en `cli/bin/cli.js` salvo una de test.
+   Cubre integridad de la descarga y extracción anti tar-slip, TOCTOU, escrituras
+   atómicas, file-to-network y la reconciliación del upstream CLI 1.1.18. **Bloquea
+   usar el CLI como canal confiable de instalación/actualización.**
+2. **013 (P1)** — Activar controles del repo: Dependabot Alerts/Graph, branch
+   protection con CI Node 22/24 + CodeQL, y política de triage de alertas.
+3. **014 (P1)** — Preparación operativa Cloudflare: secretos, Access/WAF/Rate
+   Limiting en `/admin` y `/api`, egress para el residual DNS, staging y rollback.
+4. **015 (P2)** — Mantenimiento de dependencias: reevaluar `@hono/node-server`
+   (residual no alcanzable) antes del **2026-09-30**, migración deliberada de
+   `agents` y cadencia de auditoría.
+
+Residuales aceptados con seguimiento: DNS rebinding (requiere egress confiable),
+ausencia de rate limiting dentro del Worker (se cubre en el borde, plan 014) y el
+advisory MODERATE de `@hono/node-server` no alcanzable en workerd (plan 015).
 
 ## Definición de terminado
 
