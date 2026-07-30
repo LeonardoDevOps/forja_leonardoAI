@@ -31,6 +31,7 @@ condiciones de parada y actualizar aquí su estado.
 | 007 | [Eliminar los 33 avisos ESLint](./007-eliminar-avisos-eslint.md)                 |        P1 | COMPLETADO | 005, 006      |
 | 008 | [Elevar cobertura administrativa](./008-elevar-cobertura-admin.md)               |        P2 | COMPLETADO | Ninguna       |
 | 009 | [Autenticar webhooks de canales](./009-autenticar-webhooks-canales.md)           |        P0 | COMPLETADO | Ninguna       |
+| 010 | [Endurecer acceso al panel](./010-endurecer-acceso-panel-admin.md)               |        P2 | COMPLETADO | Ninguna       |
 
 Estados permitidos para los planes pendientes: `TODO`, `EN PROGRESO`,
 `COMPLETADO`, `BLOQUEADO: <motivo>` o `RECHAZADO: <motivo>`.
@@ -60,6 +61,30 @@ Implementado el 2026-07-30 en la rama
   (seguimiento en el plan 011). El formato de todos los archivos modificados,
   `git diff --check` y el resto de gates equivalentes sí pasan. No se
   normalizaron 195 archivos ajenos al alcance.
+
+## Resultado del plan 010
+
+Implementado el 2026-07-30 en la rama
+`advisor/010-admin-access-hardening`, creada desde `origin/main` en
+`98c891b`.
+
+- El panel requiere siempre Basic Auth y rechaza configuraciones de
+  `DASHBOARD_PASSWORD` ausentes o de menos de 16 caracteres con un `503` sin
+  revelar el valor.
+- Se retiró el bypass legado `DASHBOARD_PUBLIC`; las instalaciones que lo
+  usaban deben guardar una contraseña fuerte antes de actualizar.
+- Las respuestas admin conservan `no-store`, protección de framing, `nosniff` y
+  política de referrer, incluidos los rechazos `401`/`503`.
+- `/api/*` permanece fail-closed y ahora exige un
+  `CONTROL_PLANE_TOKEN` de 32+ caracteres.
+- No se añadió un backoff local no confiable ni infraestructura nueva. El
+  residual y las opciones perimetrales se documentan en `README.md` y
+  `SECURITY.md`.
+- Validación: lint sin warnings, tipos, 526 pruebas, 83,35 % de cobertura de
+  líneas y gate administrativo de 32 comparaciones superados.
+- Desviación local: `check:ci` se detuvo solo en el formato global por CRLF
+  heredado en 189 archivos fuera del cambio. El formato focal,
+  `git diff --check` y todos los demás gates equivalentes pasan.
 
 ## Orden y dependencias de la segunda ola
 

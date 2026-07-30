@@ -24,6 +24,9 @@ export function tokensMatch(a: string, b: string): boolean {
   return timingSafeEqual(a, b);
 }
 
+/** Minimum length for the optional control-plane Bearer secret. */
+export const MIN_CONTROL_PLANE_TOKEN_LENGTH = 32;
+
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
@@ -60,14 +63,16 @@ export async function twilioExpectedSignature(
 /**
  * Fail-closed Bearer auth for the control-plane `/api/*` endpoints.
  *
- * Passes ONLY when CONTROL_PLANE_TOKEN is configured AND the request carries a
- * matching `Authorization: Bearer <token>` (constant-time compare via
- * tokensMatch). If the token is unset, the header is missing/malformed, or it
- * mismatches → returns false (the caller answers 401).
+ * Passes ONLY when CONTROL_PLANE_TOKEN has at least 32 characters AND the
+ * request carries a matching `Authorization: Bearer <token>` (constant-time
+ * compare via tokensMatch). If the token is unset/short, the header is
+ * missing/malformed, or it mismatches → returns false (the caller answers 401).
  */
 export function requireControlPlane(req: Request, env: Env): boolean {
   const expected = env.CONTROL_PLANE_TOKEN?.trim();
-  if (!expected) return false; // fail-closed: no token configured → nothing is allowed in
+  if (!expected || Array.from(expected).length < MIN_CONTROL_PLANE_TOKEN_LENGTH) {
+    return false;
+  }
   const header = req.headers.get("authorization") ?? "";
   const match = /^Bearer\s+(.+)$/i.exec(header);
   if (!match) return false;

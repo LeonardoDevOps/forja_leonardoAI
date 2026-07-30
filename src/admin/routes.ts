@@ -66,11 +66,7 @@ adminApp.use("*", async (c, next) => {
 
 // Guard every admin route with Basic Auth. The middleware factory needs the
 // request-scoped Env to read DASHBOARD_PASSWORD, so build it per request here.
-// DASHBOARD_PUBLIC="1" (wrangler.toml de esta instancia) apaga el guard —
-// el panel es público a propósito (decisión de diseño de la instancia).
-// Para volver a protegerlo: quitar esa var y redeploy.
 adminApp.use("*", (c, next) => {
-  if (c.env.DASHBOARD_PUBLIC === "1") return next();
   return adminAuth(c.env)(c, next);
 });
 

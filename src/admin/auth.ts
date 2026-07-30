@@ -13,12 +13,24 @@ import { timingSafeEqual } from "../http-auth";
 
 /** Fixed username for the admin dashboard. */
 export const ADMIN_USERNAME = "admin";
+/** Minimum number of Unicode characters accepted for the dashboard secret. */
+export const MIN_DASHBOARD_PASSWORD_LENGTH = 16;
+export const ADMIN_PASSWORD_CONFIG_ERROR =
+  "Admin access unavailable: configure DASHBOARD_PASSWORD with at least 16 characters.";
+
+/** Reject missing, whitespace-only and short dashboard passwords. */
+export function dashboardPasswordMeetsPolicy(password: string | null | undefined): password is string {
+  return typeof password === "string" && Array.from(password.trim()).length >= MIN_DASHBOARD_PASSWORD_LENGTH;
+}
 
 /**
  * Hono middleware factory enforcing HTTP Basic Auth on admin routes.
  * Mount it on the `/admin/*` group, e.g. `app.use("/admin/*", adminAuth(env))`.
  */
 export function adminAuth(env: Env): MiddlewareHandler {
+  if (!dashboardPasswordMeetsPolicy(env.DASHBOARD_PASSWORD)) {
+    return async (c) => c.text(ADMIN_PASSWORD_CONFIG_ERROR, 503);
+  }
   return basicAuth({
     username: ADMIN_USERNAME,
     password: env.DASHBOARD_PASSWORD,
@@ -48,6 +60,7 @@ function decodeBase64(input: string): string | null {
  * @param env         environment carrying `DASHBOARD_PASSWORD`
  */
 export function checkBasicCredentials(headerValue: string | null | undefined, env: Env): boolean {
+  if (!dashboardPasswordMeetsPolicy(env.DASHBOARD_PASSWORD)) return false;
   if (!headerValue) return false;
 
   const match = /^Basic\s+(.+)$/i.exec(headerValue.trim());
@@ -64,6 +77,6 @@ export function checkBasicCredentials(headerValue: string | null | undefined, en
   const password = decoded.slice(sep + 1);
 
   const userOk = timingSafeEqual(username, ADMIN_USERNAME);
-  const passOk = timingSafeEqual(password, env.DASHBOARD_PASSWORD ?? "");
+  const passOk = timingSafeEqual(password, env.DASHBOARD_PASSWORD);
   return userOk && passOk;
 }

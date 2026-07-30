@@ -87,12 +87,13 @@ bindings creados. Si falta algo, se detiene y te dice qué.
 
 ### Dashboard / acceso de administrador
 
-| Síntoma                                             | Causa                                                                           | Cómo arreglarlo                                                                                                                                      |
-| --------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Al entrar al dashboard pide usuario y contraseña    | es lo normal: el dashboard usa **Basic Auth**                                   | usuario: **`admin`** (siempre), contraseña: la que pusiste en `DASHBOARD_PASSWORD`                                                                   |
-| `401 Unauthorized` al entrar al dashboard           | la contraseña no coincide con `DASHBOARD_PASSWORD`, o el secret no está seteado | confirma que el usuario sea exactamente `admin`; vuelve a setear con `pnpm wrangler secret put DASHBOARD_PASSWORD` y redeploya con `pnpm run deploy` |
-| Olvidaste la contraseña del dashboard               | no se puede "recuperar", solo reemplazar                                        | corre `pnpm wrangler secret put DASHBOARD_PASSWORD` con una nueva, luego `pnpm run deploy`                                                           |
-| El navegador recuerda una contraseña vieja y da 401 | credenciales cacheadas de Basic Auth                                            | abre en ventana privada/incógnito o limpia las credenciales guardadas del sitio                                                                      |
+| Síntoma                                             | Causa                                              | Cómo arreglarlo                                                                                                                       |
+| --------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Al entrar al dashboard pide usuario y contraseña    | es lo normal: el dashboard usa **Basic Auth**      | usuario: **`admin`** (siempre), contraseña: la que pusiste en `DASHBOARD_PASSWORD`                                                    |
+| `401 Unauthorized` al entrar al dashboard           | la contraseña no coincide con `DASHBOARD_PASSWORD` | confirma que el usuario sea exactamente `admin`; rota el secret con `pnpm wrangler secret put DASHBOARD_PASSWORD` y vuelve a publicar |
+| `503` menciona `DASHBOARD_PASSWORD`                 | el secret falta o tiene menos de 16 caracteres     | genera una contraseña aleatoria de 16+ caracteres, guárdala con `pnpm wrangler secret put DASHBOARD_PASSWORD` y vuelve a publicar     |
+| Olvidaste o necesitas rotar la contraseña del panel | no se puede "recuperar", solo reemplazar           | guarda una nueva contraseña única de 16+ caracteres, vuelve a publicar y prueba en una ventana privada                                |
+| El navegador recuerda una contraseña vieja y da 401 | credenciales cacheadas de Basic Auth               | abre en ventana privada/incógnito o limpia las credenciales guardadas del sitio                                                       |
 
 > El dashboard **no tiene** login por email ni "magic link". No existe `/login`
 > ni `/logout`. El único acceso es Basic Auth con usuario `admin`. Si una guía

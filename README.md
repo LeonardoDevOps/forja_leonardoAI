@@ -61,7 +61,7 @@ pnpm install
 # Configura wrangler.toml (tu nombre de worker) y tus secretos
 npx wrangler d1 create horizontes_bot_db  # → pega el database_id en wrangler.toml
 npx wrangler secret put ANTHROPIC_API_KEY # (o OPENAI/XAI)
-npx wrangler secret put DASHBOARD_PASSWORD
+npx wrangler secret put DASHBOARD_PASSWORD # contraseña única de 16+ caracteres
 pnpm db:apply:remote
 pnpm run deploy
 ```
@@ -140,6 +140,28 @@ El Starter de este repo sirve para **cualquier negocio**. Si quieres ir más all
 - Si preguntan si es un bot, **el bot lo admite**. No lo configures para negarlo.
 
 Como dueño del negocio, **tú eres el responsable** de esos datos: avisa a tus clientes que la atención es automatizada y que guardas la conversación, y atiende las solicitudes de borrado. Todo el detalle está en [`PRIVACY.md`](./PRIVACY.md).
+
+### Acceso al panel administrativo
+
+`/admin` siempre exige HTTP Basic Auth con el usuario fijo `admin`.
+`DASHBOARD_PASSWORD` debe tener al menos 16 caracteres; si falta o es más corta,
+el panel falla cerrado sin mostrar el valor. Usa una contraseña aleatoria,
+exclusiva y guardada en un gestor de contraseñas:
+
+```bash
+pnpm wrangler secret put DASHBOARD_PASSWORD
+```
+
+Para rotarla, ejecuta de nuevo el mismo comando, publica la nueva versión y
+verifica el acceso en una ventana privada. Las respuestas administrativas usan
+`Cache-Control: no-store`, bloquean framing y no envían referrer. El Bearer
+opcional `CONTROL_PLANE_TOKEN` de `/api/*` requiere al menos 32 caracteres y
+permanece cerrado cuando falta o es corto.
+
+Forja no mantiene un contador de fallos dentro del Worker: la memoria de un
+isolate no es un rate limiter distribuido ni durable. Instalaciones expuestas a
+Internet que necesiten bloqueo por IP deben añadir Cloudflare Rate Limiting,
+WAF o Access en el perímetro.
 
 ### Seguridad de medios remotos
 

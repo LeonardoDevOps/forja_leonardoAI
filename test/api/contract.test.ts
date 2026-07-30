@@ -11,7 +11,7 @@ import { Db } from "../../src/db/client";
 import { BOT_VERSION } from "../../src/version";
 import type { Env } from "../../src/env";
 
-const TOKEN = "cp-secret-token";
+const TOKEN = "control-plane-token-0123456789abcdef";
 const NOW = Date.now();
 const IN_WINDOW = NOW - 60 * 60 * 1000; // 1h ago → inside the 7d window
 
@@ -85,6 +85,13 @@ describe("control-plane guard (fail-closed)", () => {
 
     it(`${path}: 401 with token set but wrong Bearer`, async () => {
       const res = await apiApp.request(path, { headers: bearer("wrong-token") }, authedEnv());
+      expect(res.status).toBe(401);
+    });
+
+    it(`${path}: 401 when the configured token is too short even if it matches`, async () => {
+      const shortToken = "short-control-token";
+      const env = { ...authedEnv(), CONTROL_PLANE_TOKEN: shortToken };
+      const res = await apiApp.request(path, { headers: bearer(shortToken) }, env);
       expect(res.status).toBe(401);
     });
   }

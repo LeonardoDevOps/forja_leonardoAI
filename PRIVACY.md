@@ -43,7 +43,9 @@ Cuando instalas Forja, **tú eres el responsable** de los datos personales de tu
 - **Avisa que hay un bot.** Di en tu perfil, en tu web o en el primer mensaje que la atención es automatizada con IA. Si un cliente pregunta si habla con una máquina, el bot lo admite (así viene configurado) — no lo cambies para que lo niegue.
 - **Avisa que guardas la conversación.** Una línea en tu aviso de privacidad basta: qué guardas, para qué, y por cuánto tiempo.
 - **Atiende las solicitudes de borrado.** Si un cliente pide que borres sus datos, hazlo: puedes borrar su conversación, su lead y sus tickets desde el panel (`/admin`) o directamente con `wrangler d1 execute`.
-- **Cuida el acceso al panel.** `/admin` guarda las conversaciones de tus clientes: usa una contraseña fuerte en `DASHBOARD_PASSWORD` y no dejes `DASHBOARD_PUBLIC="1"`.
+- **Cuida el acceso al panel.** `/admin` guarda las conversaciones de tus
+  clientes: usa una contraseña aleatoria y exclusiva de al menos 16 caracteres
+  en `DASHBOARD_PASSWORD`, y rótala si sospechas que se ha compartido.
 - **No metas datos sensibles a la base de conocimiento.** Lo que subes ahí lo puede citar el bot en un chat.
 - **Revisa las leyes de tu país.** En México aplica la LFPDPPP (aviso de privacidad y derechos ARCO); en la Unión Europea, el RGPD; en otros países, lo suyo.
 

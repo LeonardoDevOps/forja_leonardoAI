@@ -5,7 +5,7 @@ import { SETTING_KEYS } from "../../src/db/settings";
 import type { Env } from "../../src/env";
 import { adminRequest, basicHeader, makeAdminEnv, makeStubDb } from "./helpers";
 
-const PASSWORD = "secret123";
+const PASSWORD = "test-dashboard-password-123";
 
 function makeEnv(db: D1Database = makeStubDb()): Env {
   return makeAdminEnv(db, { DASHBOARD_PASSWORD: PASSWORD });
@@ -15,6 +15,9 @@ describe("admin routes — auth", () => {
   it("returns 401 without an Authorization header", async () => {
     const res = await adminApp.fetch(adminRequest("/overview"), makeEnv());
     expect(res.status).toBe(401);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(res.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(res.headers.get("x-frame-options")).toBe("DENY");
   });
 
   it("returns 401 with wrong credentials", async () => {
@@ -23,6 +26,33 @@ describe("admin routes — auth", () => {
       makeEnv(),
     );
     expect(res.status).toBe(401);
+  });
+
+  it("fails closed with a clear, non-secret error when the password is weak", async () => {
+    const weakPassword = "short-secret";
+    const env = makeAdminEnv(makeStubDb(), { DASHBOARD_PASSWORD: weakPassword });
+    const res = await adminApp.fetch(
+      adminRequest("/overview", {
+        headers: { Authorization: basicHeader(ADMIN_USERNAME, weakPassword) },
+      }),
+      env,
+    );
+
+    expect(res.status).toBe(503);
+    const body = await res.text();
+    expect(body).toContain("DASHBOARD_PASSWORD");
+    expect(body).toContain("16");
+    expect(body).not.toContain(weakPassword);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(res.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(res.headers.get("x-frame-options")).toBe("DENY");
+  });
+
+  it("fails closed when DASHBOARD_PASSWORD is absent", async () => {
+    const env = makeAdminEnv(makeStubDb(), { DASHBOARD_PASSWORD: undefined });
+    const res = await adminApp.fetch(adminRequest("/overview"), env);
+    expect(res.status).toBe(503);
+    expect(await res.text()).toContain("DASHBOARD_PASSWORD");
   });
 
   it("returns 200 with correct credentials", async () => {
