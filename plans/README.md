@@ -20,23 +20,23 @@ condiciones de parada y actualizar aquí su estado.
 
 ## Estado
 
-| ID  | Plan                                                                             | Prioridad | Estado      | Dependencias  |
-| --- | -------------------------------------------------------------------------------- | --------: | ----------- | ------------- |
-| 001 | [Calidad, formato y reproducibilidad](./001-calidad-formato-reproducibilidad.md) |        P0 | Completado  | Ninguna       |
-| 002 | [Tests, cobertura y seguridad del código](./002-tests-cobertura-seguridad.md)    |        P0 | Completado  | 001           |
-| 003 | [CI y supply chain](./003-ci-supply-chain.md)                                    |        P0 | Completado  | 001, 002      |
-| 004 | [Documentación, validación y entrega](./004-documentacion-validacion-entrega.md) |        P0 | Completado  | 001, 002, 003 |
-| 005 | [Migrar `agents` 0.3.x y supply chain](./005-migrar-agents-0-3-supply-chain.md)  |        P1 | Completado  | Ninguna       |
-| 006 | [Endurecer egress de medios y DNS](./006-endurecer-egress-medios-dns.md)         |        P1 | Completado  | Ninguna       |
-| 007 | [Eliminar los 33 avisos ESLint](./007-eliminar-avisos-eslint.md)                 |        P1 | COMPLETADO  | 005, 006      |
-| 008 | [Elevar cobertura administrativa](./008-elevar-cobertura-admin.md)               |        P2 | COMPLETADO  | Ninguna       |
-| 009 | [Autenticar webhooks de canales](./009-autenticar-webhooks-canales.md)           |        P0 | COMPLETADO  | Ninguna       |
-| 010 | [Endurecer acceso al panel](./010-endurecer-acceso-panel-admin.md)               |        P2 | COMPLETADO  | Ninguna       |
-| 011 | [Higiene de dependencias y EOL](./011-higiene-deps-y-eol.md)                     |        P3 | COMPLETADO  | Ninguna       |
-| 012 | [Revisión de seguridad del CLI](./012-revision-seguridad-cli.md)                 |        P0 | EN PROGRESO | Ninguna       |
-| 013 | [Controles de seguridad del repo](./013-controles-seguridad-repo-github.md)      |        P1 | TODO        | 012           |
-| 014 | [Preparación operativa Cloudflare](./014-preparacion-operativa-cloudflare.md)    |        P1 | TODO        | Ninguna       |
-| 015 | [Mantenimiento de dependencias](./015-mantenimiento-dependencias-residuales.md)  |        P2 | TODO        | Ninguna       |
+| ID  | Plan                                                                             | Prioridad | Estado     | Dependencias  |
+| --- | -------------------------------------------------------------------------------- | --------: | ---------- | ------------- |
+| 001 | [Calidad, formato y reproducibilidad](./001-calidad-formato-reproducibilidad.md) |        P0 | Completado | Ninguna       |
+| 002 | [Tests, cobertura y seguridad del código](./002-tests-cobertura-seguridad.md)    |        P0 | Completado | 001           |
+| 003 | [CI y supply chain](./003-ci-supply-chain.md)                                    |        P0 | Completado | 001, 002      |
+| 004 | [Documentación, validación y entrega](./004-documentacion-validacion-entrega.md) |        P0 | Completado | 001, 002, 003 |
+| 005 | [Migrar `agents` 0.3.x y supply chain](./005-migrar-agents-0-3-supply-chain.md)  |        P1 | Completado | Ninguna       |
+| 006 | [Endurecer egress de medios y DNS](./006-endurecer-egress-medios-dns.md)         |        P1 | Completado | Ninguna       |
+| 007 | [Eliminar los 33 avisos ESLint](./007-eliminar-avisos-eslint.md)                 |        P1 | COMPLETADO | 005, 006      |
+| 008 | [Elevar cobertura administrativa](./008-elevar-cobertura-admin.md)               |        P2 | COMPLETADO | Ninguna       |
+| 009 | [Autenticar webhooks de canales](./009-autenticar-webhooks-canales.md)           |        P0 | COMPLETADO | Ninguna       |
+| 010 | [Endurecer acceso al panel](./010-endurecer-acceso-panel-admin.md)               |        P2 | COMPLETADO | Ninguna       |
+| 011 | [Higiene de dependencias y EOL](./011-higiene-deps-y-eol.md)                     |        P3 | COMPLETADO | Ninguna       |
+| 012 | [Revisión de seguridad del CLI](./012-revision-seguridad-cli.md)                 |        P0 | COMPLETADO | Ninguna       |
+| 013 | [Controles de seguridad del repo](./013-controles-seguridad-repo-github.md)      |        P1 | TODO       | 012           |
+| 014 | [Preparación operativa Cloudflare](./014-preparacion-operativa-cloudflare.md)    |        P1 | TODO       | Ninguna       |
+| 015 | [Mantenimiento de dependencias](./015-mantenimiento-dependencias-residuales.md)  |        P2 | TODO       | Ninguna       |
 
 Estados permitidos para los planes pendientes: `TODO`, `EN PROGRESO`,
 `COMPLETADO`, `BLOQUEADO: <motivo>` o `RECHAZADO: <motivo>`.
@@ -134,11 +134,12 @@ Implementado el 2026-07-30 en la rama
   `FORJA_REQUIRE_ARTIFACT_INTEGRITY=1`. Residual: el backend no está en este
   repositorio y debe publicar el header antes de activar fail-closed por
   defecto.
-- Validación parcial: sintaxis, formato focal, ESLint sin warnings, tipos,
-  22 pruebas focales, 541 pruebas totales, 83,35 % de líneas y gate
-  administrativo 32/32 superados. El `check:ci` definitivo se repite en un
-  worktree limpio porque el checkout original materializa 130 archivos
-  heredados como CRLF aunque Git y `.gitattributes` declaran LF.
+- Validación: sintaxis, 22 pruebas focales y
+  `corepack pnpm@10.34.5 check:ci` completo en worktree limpio: formato, ESLint
+  sin warnings, tipos, 541 pruebas en 74 archivos, 83,35 % de líneas y gate
+  administrativo 32/32 superados. El checkout original materializa 130
+  archivos heredados como CRLF aunque Git y `.gitattributes` declaran LF; no se
+  normalizaron archivos fuera del alcance.
 - CodeQL remoto recalculará las alertas al publicar la rama; no se descartaron
   alertas por API.
 

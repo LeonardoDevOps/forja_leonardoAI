@@ -271,8 +271,8 @@ operativa previa a declarar integridad criptográfica extremo a extremo.
 - Formato focal y `git diff --check`: PASS.
 - El `format:check` del checkout original detectó 130 archivos heredados
   materializados como CRLF aunque el índice y `.gitattributes` declaran LF. No
-  se normalizaron archivos fuera del alcance; el gate completo se repite en un
-  worktree limpio antes de cerrar el plan.
+  se normalizaron archivos fuera del alcance. En un worktree limpio del mismo
+  commit, `corepack pnpm@10.34.5 check:ci` pasó completo.
 - CodeQL remoto no se puede recalcular hasta publicar la rama; las alertas de
   `main` permanecerán visibles hasta que GitHub analice estos commits. No se
   descartó ninguna alerta por API.
@@ -287,7 +287,7 @@ operativa previa a declarar integridad criptográfica extremo a extremo.
 - [x] Las exclusiones de actualización preservan `member/`, `wrangler.toml` y secretos locales.
 - [x] file-to-network limita campos y destinos; sin fuga de secretos.
 - [x] Upstream 1.1.18 reconciliado con las protecciones intactas.
-- [ ] `node --check` y `check:ci` pasan; solo archivos de alcance.
+- [x] `node --check` y `check:ci` pasan; solo archivos de alcance.
 - [x] `plans/README.md` actualizado.
 
 ## Condiciones de parada
