@@ -140,8 +140,10 @@ Implementado el 2026-07-30 en la rama
   administrativo 32/32 superados. El checkout original materializa 130
   archivos heredados como CRLF aunque Git y `.gitattributes` declaran LF; no se
   normalizaron archivos fuera del alcance.
-- CodeQL remoto recalculará las alertas al publicar la rama; no se descartaron
-  alertas por API.
+- CodeQL del PR #10 no conserva ninguna de las 14 alertas originales. La nueva
+  MEDIUM #17 marca el `writeSync` esperado tras las validaciones de artefacto y
+  staging; se revisó y descartó como `won't fix` porque eliminar el sink
+  impediría instalar, con el residual de checksum ya documentado.
 
 ## Orden y dependencias de la segunda ola
 

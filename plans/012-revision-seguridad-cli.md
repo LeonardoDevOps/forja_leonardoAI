@@ -273,9 +273,11 @@ operativa previa a declarar integridad criptográfica extremo a extremo.
   materializados como CRLF aunque el índice y `.gitattributes` declaran LF. No
   se normalizaron archivos fuera del alcance. En un worktree limpio del mismo
   commit, `corepack pnpm@10.34.5 check:ci` pasó completo.
-- CodeQL remoto no se puede recalcular hasta publicar la rama; las alertas de
-  `main` permanecerán visibles hasta que GitHub analice estos commits. No se
-  descartó ninguna alerta por API.
+- CodeQL del PR #10: las 14 alertas originales no aparecen en la referencia del
+  PR. Surgió una nueva MEDIUM #17 (`http-to-file-access`) en el `writeSync`
+  atómico: es el sink esperado que materializa el artefacto después de validar
+  HTTPS, SHA-256 disponible, TAR, rutas, tipos, límites y staging. Se revisó y
+  descartó como `won't fix` con esa justificación; eliminarlo impediría instalar.
 
 ## Criterios de terminado
 
