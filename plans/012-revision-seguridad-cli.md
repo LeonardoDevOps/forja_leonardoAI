@@ -29,7 +29,7 @@ El Worker/chatbot está listo para producción, pero el **CLI todavía no es un 
 confiable de instalación/actualización**. CodeQL mantiene 13 alertas en
 `cli/bin/cli.js` y 1 en un test. El CLI descarga un artefacto del servidor y lo
 **extrae con `tar` en el directorio del usuario sin verificación de integridad**,
-y hace varias escrituras *check-then-write* sobre archivos de configuración
+y hace varias escrituras _check-then-write_ sobre archivos de configuración
 sensibles. Un servidor comprometido, un MITM o un artefacto manipulado podrían
 escribir fuera del destino (tar-slip), pisar configuración o colocar symlinks
 maliciosos en la máquina del usuario. Este plan cierra o justifica cada alerta y
@@ -71,7 +71,7 @@ descartar (dismiss) con justificación revisada.
    absolutas y **symlinks/hardlinks**. Añadir flags defensivas de `tar`
    (`--no-same-owner`, `-p` off, límites) o usar un extractor que permita filtrar
    entradas. Aplicar límites de tamaño total y por archivo.
-3. **Escrituras atómicas y canónicas (TOCTOU):** sustituir *check-then-write* por
+3. **Escrituras atómicas y canónicas (TOCTOU):** sustituir _check-then-write_ por
    escritura a archivo temporal + `rename` atómico; resolver el path canónico y
    **rechazar si el destino es un symlink/reparse point** antes de escribir
    `wrangler.toml`, `member/*` protegidos o el `SKILL.md`. `mkdirSync(..., {recursive:true})`
