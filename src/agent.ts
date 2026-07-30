@@ -184,7 +184,7 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
     // every previous delayed processBuffer task first so rapid messages
     // debounce to a single execution without depending on the SDK's private
     // SQLite schema.
-    const pendingBufferSchedules = this.getSchedules({ type: "delayed" }).filter(
+    const pendingBufferSchedules = (await this.listSchedules({ type: "delayed" })).filter(
       (schedule) => schedule.callback === "processBuffer",
     );
     for (const schedule of pendingBufferSchedules) {

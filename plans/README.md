@@ -37,7 +37,7 @@ condiciones de parada y actualizar aquí su estado.
 | 013 | [Controles de seguridad del repo](./013-controles-seguridad-repo-github.md)      |        P1 | COMPLETADO | 012           |
 | 014 | [Preparación operativa Cloudflare](./014-preparacion-operativa-cloudflare.md)    |        P1 | BLOQUEADO  | Ninguna       |
 | 015 | [Mantenimiento de dependencias](./015-mantenimiento-dependencias-residuales.md)  |        P2 | COMPLETADO | Ninguna       |
-| 016 | [Migrar `agents` a la serie actual](./016-migrar-agents-0-20.md)                 |        P1 | TODO       | 015           |
+| 016 | [Migrar `agents` a la serie actual](./016-migrar-agents-0-20.md)                 |        P1 | COMPLETADO | 015           |
 
 Estados permitidos para los planes pendientes: `TODO`, `EN PROGRESO`,
 `COMPLETADO`, `BLOQUEADO: <motivo>` o `RECHAZADO: <motivo>`.
@@ -228,6 +228,37 @@ Implementado el 2026-07-30 en la rama
   heredados del checkout de Windows. Sus gates restantes pasaron por separado;
   no se normalizaron archivos fuera del alcance.
 
+## Resultado del plan 016
+
+Implementado el 2026-07-30 en la rama `advisor/016-agents-0-20`, creada desde
+`origin/main` en `9acdb5f`.
+
+- `agents` pasó de 0.3.10 a 0.20.1 y quedó fijado exactamente para impedir
+  actualizaciones minor pre-1.0 no revisadas.
+- Miniflare pasó de 4.20260426.0 a 4.20260730.0 para soportar la API de tracing
+  usada por el SDK actual.
+- `getSchedules()` se sustituyó por `await listSchedules()`; el debounce sigue
+  cancelando schedules anteriores y creando una sola ejecución delayed.
+- El lockfile contiene una versión de `agents`, PartyServer, MCP v1/v2 y Hono.
+  Los overrides MCP/Hono dejaron de ser necesarios y se retiraron.
+- x402, Codemode y AI Chat son peers opcionales y no se instalaron porque Forja
+  no los importa. AI SDK permanece en la serie 6.
+- Una prueba real de Wrangler/Miniflare siembra estado y scheduling con el
+  esquema 0.3.10, despierta el mismo Durable Object con 0.20.1 y verifica la
+  migración y el reemplazo del debounce.
+- La guía `docs/agents-0.20-migration.md` registra changelogs, compatibilidad,
+  esquema aditivo y rollback sin editar tablas internas.
+- El motor efectivo queda en Node 22.18+ o 24.11+ (Node 23 excluido). Node
+  22.23.2 pasó typecheck y 17 pruebas focales; Node 24.18.0 pasó las 552 pruebas
+  de 76 archivos y el gate administrativo 32/32.
+- ESLint quedó en cero warnings, la cobertura alcanzó 83,35 % de líneas, la
+  auditoría LOW quedó en cero y el build Wrangler/Miniflare se ejecutó
+  localmente con `--dry-run`.
+- El formato focal y `git diff --check` pasan. El chequeo global conserva 126
+  archivos CRLF heredados, que no se normalizaron para evitar cambios ajenos.
+- No se modificaron `member/`, `wrangler.toml` ni secretos; no hubo despliegue
+  ni publicación npm.
+
 ## Orden y dependencias de la segunda ola
 
 1. Ejecutar 005 y 006 primero; son independientes entre sí.
@@ -354,13 +385,13 @@ el **CLI**— apto para producción, ordenado por severidad:
    Hono quedó corregido con una combinación compatible de MCP 1.30.0 y Hono
    2.0.12; se automatizó la auditoría y el salto pre-1.0 de `agents` se derivó
    al plan 016.
-5. **016 (P1)** — Migración deliberada de `agents 0.3.10` a la serie actual,
-   con caracterización de estado, alarms, scheduling, peers y rollback.
+5. **016 (P1, completado)** — `agents 0.20.1` fijado y validado con
+   caracterización de estado, alarms, scheduling, peers y rollback.
 
 Residuales aceptados con seguimiento: DNS rebinding (requiere egress confiable),
 ausencia de rate limiting dentro del Worker (se cubre en el borde, plan 014) y
-la deriva pre-1.0 de `agents` (plan 016). El advisory MODERATE de
-`@hono/node-server` quedó cerrado en el plan 015.
+la necesidad de revisión deliberada para futuros saltos pre-1.0 de `agents`. El
+advisory MODERATE de `@hono/node-server` quedó cerrado en el plan 015.
 
 ## Definición de terminado
 
