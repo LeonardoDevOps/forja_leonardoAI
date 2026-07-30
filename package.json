@@ -12,6 +12,7 @@
     "dev": "wrangler dev",
     "version:write": "node -e \"require('fs').writeFileSync('.bot-version', require('./package.json').version + '\\n')\"",
     "deploy-check": "tsx scripts/deploy-check.ts",
+    "cloudflare:preflight": "tsx scripts/cloudflare-production-check.ts",
     "predeploy": "pnpm deploy-check && pnpm version:write",
     "deploy": "wrangler deploy",
     "lint": "eslint . --max-warnings 0",

@@ -6,6 +6,7 @@ node_modules/
 .DS_Store
 dist/
 coverage/
+.forja-reports/
 .playwright-cli/
 .bot-setup.json
 .bot-state.json

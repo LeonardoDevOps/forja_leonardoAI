@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "target": "production",
+  "evidenceOwner": "TODO",
+  "approvedAt": "TODO",
+  "secretNames": [],
+  "edge": {
+    "admin": {
+      "enabled": false,
+      "mode": "access",
+      "rateLimiting": false
+    },
+    "api": {
+      "enabled": false,
+      "mode": "access",
+      "rateLimiting": false
+    },
+    "webhooks": {
+      "rateLimiting": "not-required",
+      "rationale": "TODO"
+    }
+  },
+  "egress": {
+    "decision": "accepted",
+    "rationale": "TODO",
+    "reviewBy": "TODO"
+  },
+  "staging": {
+    "commitSha": "TODO",
+    "testedAt": "TODO",
+    "checks": {
+      "telegramValid": false,
+      "telegramInvalidRejected": false,
+      "manychatValid": false,
+      "manychatInvalidRejected": false,
+      "twilioValid": false,
+      "twilioInvalidNotIngested": false,
+      "metaValid": false,
+      "metaInvalidRejected": false,
+      "whatsappValid": false,
+      "whatsappInvalidRejected": false,
+      "adminValid": false,
+      "adminInvalidRejected": false,
+      "apiValid": false,
+      "apiInvalidRejected": false
+    }
+  },
+  "rollback": {
+    "versionId": "TODO",
+    "commandReviewed": false,
+    "dataCompatibilityReviewed": false
+  },
+  "monitoring": {
+    "owner": "TODO",
+    "webhook403": false,
+    "admin401": false,
+    "worker5xx": false
+  }
+}
