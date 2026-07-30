@@ -105,7 +105,7 @@ export function makeStubDb(
 export function makeAdminEnv(db: D1Database = makeStubDb(), overrides: Partial<Env> = {}): Env {
   return {
     DB: db,
-    DASHBOARD_PASSWORD: "secret123",
+    DASHBOARD_PASSWORD: "test-dashboard-password-123",
     BUSINESS_NAME: "Test Biz",
     BOT_NAME: "Test Bot",
     BOT_LANGUAGE: "es",

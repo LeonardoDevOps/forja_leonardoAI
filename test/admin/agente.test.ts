@@ -11,7 +11,7 @@ import { SettingsRepo, SETTING_KEYS } from "../../src/db/settings";
 import { ConversationsRepo } from "../../src/db/conversations";
 import type { Env } from "../../src/env";
 
-const PASSWORD = "secret123";
+const PASSWORD = "test-dashboard-password-123";
 
 function basicAuthHeader(user: string, pass: string): string {
   const raw = `${user}:${pass}`;

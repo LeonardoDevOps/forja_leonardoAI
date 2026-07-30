@@ -65,6 +65,9 @@ describe("Worker entry", () => {
   it("returns 200 on /health", async () => {
     const res = await worker.fetch(new Request("https://test/health"), env, {} as any);
     expect(res.status).toBe(200);
+    expect(res.headers.get("cache-control")).toBeNull();
+    expect(res.headers.get("referrer-policy")).toBeNull();
+    expect(res.headers.get("x-frame-options")).toBeNull();
   });
 
   it("returns 404 on unknown route", async () => {

@@ -46,7 +46,7 @@ import type { Env } from "../../src/env";
 
 // --- Test env ---------------------------------------------------------------
 
-const PASSWORD = "secret123";
+const PASSWORD = "test-dashboard-password-123";
 
 function makeEnv(): Env {
   return {

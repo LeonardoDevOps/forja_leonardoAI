@@ -27,7 +27,7 @@ import { getLessons } from "../../src/flywheel/detect";
 import { checkBotHealth, ALERT_THRESHOLD } from "../../src/watchdog";
 import type { Env } from "../../src/env";
 
-const PASSWORD = "secret123";
+const PASSWORD = "test-dashboard-password-123";
 const AUTH = {
   Authorization: `Basic ${Buffer.from(`admin:${PASSWORD}`).toString("base64")}`,
 };

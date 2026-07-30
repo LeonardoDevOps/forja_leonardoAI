@@ -94,13 +94,9 @@ export interface Env {
   OWNER_TELEGRAM_CHAT_ID?: string; // for handoff notifications (default channel)
   OWNER_WA_NUMBER?: string; // for Pro handoff WhatsApp DM (requires template)
 
-  // HTTP Basic Auth password for the admin dashboard (secret).
+  // HTTP Basic Auth password for the admin dashboard (secret, 16+ characters).
   // Username is always "admin". Set via `wrangler secret put DASHBOARD_PASSWORD`.
   DASHBOARD_PASSWORD: string;
-
-  // "1" = panel admin PÚBLICO (sin Basic Auth). Solo cuando el dueño lo decide
-  // explícitamente (var en wrangler.toml); sin la var, el guard queda activo.
-  DASHBOARD_PUBLIC?: string;
 
   // Token guarding POST /kb/reindex (header: X-Reindex-Token). Secret.
   // Set via `wrangler secret put KB_REINDEX_TOKEN`.
@@ -109,6 +105,6 @@ export interface Env {
   // Control plane (hosted): glue para que un plano de control externo lea este
   // bot self-hosted vía los endpoints /api/*. Ambos opcionales; sin el token,
   // /api/* queda cerrado (fail-closed).
-  CONTROL_PLANE_TOKEN?: string; // secret; Bearer que el control plane presenta para llamar /api/*
+  CONTROL_PLANE_TOKEN?: string; // secret de 32+ caracteres; Bearer presentado a /api/*
   CONTROL_PLANE_URL?: string; // base URL del control plane (para reportes / license check futuros)
 }

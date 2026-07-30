@@ -36,7 +36,7 @@ import { detectKbGaps, detectLessons, getLessons } from "../../src/flywheel/dete
 import { applySuggestion, dismissSuggestion } from "../../src/flywheel/apply";
 import type { Env } from "../../src/env";
 
-const PASSWORD = "secret123";
+const PASSWORD = "test-dashboard-password-123";
 const AUTH = {
   Authorization: `Basic ${Buffer.from(`admin:${PASSWORD}`).toString("base64")}`,
 };

@@ -19,7 +19,7 @@ import { ConversationsRepo } from "../../src/db/conversations";
 import { MessagesRepo } from "../../src/db/messages";
 import type { Env } from "../../src/env";
 
-const PASSWORD = "secret123";
+const PASSWORD = "test-dashboard-password-123";
 
 function basicAuthHeader(user: string, pass: string): string {
   const raw = `${user}:${pass}`;
