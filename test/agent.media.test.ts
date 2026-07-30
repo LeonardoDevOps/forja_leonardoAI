@@ -27,7 +27,7 @@ vi.mock("agents", () => ({
     setState(s: any) {
       this.state = s;
     }
-    getSchedules = vi.fn((criteria?: { type?: string }) =>
+    listSchedules = vi.fn(async (criteria?: { type?: string }) =>
       this.schedules.filter((schedule) => !criteria?.type || schedule.type === criteria.type),
     );
     cancelSchedule = vi.fn(async (id: string) => {
@@ -360,6 +360,31 @@ describe("SupportAgent.alarm — multimodal last message (Task 6.3)", () => {
     const arg = streamTextMock.mock.calls[0][0];
     expect(arg.model).toEqual({ modelId: "claude-sonnet-4-5-20250929" });
   });
+
+  it("consumes a persisted buffer only once when duplicate callbacks overlap", async () => {
+    const { agent } = makeAgent({ tier: "free" });
+
+    streamTextMock.mockReset();
+    streamTextMock.mockImplementation(() => makeStreamResult("respuesta única"));
+
+    const append = vi.spyOn(MessagesRepo.prototype, "append").mockResolvedValue(undefined as any);
+    vi.spyOn(MessagesRepo.prototype, "lastN").mockResolvedValue([
+      { role: "user", content: "mensaje persistido" },
+    ] as any);
+    vi.spyOn(ConversationsRepo.prototype, "touchLastMessage").mockResolvedValue(undefined as any);
+    const sendReply = vi.fn(async () => {});
+    vi.spyOn(senderMod, "pickAdapter").mockReturnValue({ sendReply } as any);
+
+    agent.state.pendingMessages = [{ text: "mensaje persistido", receivedAt: 123 }];
+
+    await Promise.all([agent.processBuffer(), agent.processBuffer()]);
+
+    expect(streamTextMock).toHaveBeenCalledTimes(1);
+    expect(sendReply).toHaveBeenCalledTimes(1);
+    expect(append.mock.calls.filter(([, role]) => role === "user")).toHaveLength(1);
+    expect(append.mock.calls.filter(([, role]) => role === "assistant")).toHaveLength(1);
+    expect(agent.state.pendingMessages).toEqual([]);
+  });
 });
 
 describe("SupportAgent.ingest — bot_paused (settings)", () => {
@@ -390,7 +415,7 @@ describe("SupportAgent.ingest — bot_paused (settings)", () => {
     expect(agent.state.pendingMessages).toHaveLength(1);
     expect(agent.state.pendingMessages[0].text).toBe("hola, estoy pausado?");
     // … but the bot stays silent: the scheduler is never consulted.
-    expect(agent.getSchedules).not.toHaveBeenCalled();
+    expect(agent.listSchedules).not.toHaveBeenCalled();
     expect(agent.cancelSchedule).not.toHaveBeenCalled();
     expect(agent.schedule).not.toHaveBeenCalled();
   });
@@ -407,7 +432,7 @@ describe("SupportAgent.ingest — bot_paused (settings)", () => {
       text: "hola",
     });
 
-    expect(agent.getSchedules).toHaveBeenCalledWith({ type: "delayed" });
+    expect(agent.listSchedules).toHaveBeenCalledWith({ type: "delayed" });
     expect(agent.cancelSchedule).not.toHaveBeenCalled();
     expect(agent.schedule).toHaveBeenCalledWith(8, "processBuffer", {});
     expect(agent.state.lastAlarmAt).toBeGreaterThanOrEqual(before + 8_000);
@@ -457,5 +482,48 @@ describe("SupportAgent.ingest — bot_paused (settings)", () => {
       agent.schedules.filter((schedule: { callback: string }) => schedule.callback === "processBuffer"),
     ).toHaveLength(1);
     expect(agent.schedule).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves buffered state across a cold wake and replaces the pending debounce", async () => {
+    stubSettings();
+    stubConversations();
+    const { agent: firstInstance } = makeAgent({ tier: "free" });
+    firstInstance.setState({
+      ...firstInstance.state,
+      pendingMessages: [{ text: "antes del reinicio", receivedAt: 100 }],
+      lastAlarmAt: 8_100,
+    });
+    firstInstance.schedules.push({
+      id: "persisted-buffer",
+      callback: "processBuffer",
+      payload: {},
+      type: "delayed",
+      time: 8,
+    });
+
+    const persistedState = structuredClone(firstInstance.state);
+    const persistedSchedules = structuredClone(firstInstance.schedules);
+
+    const { agent: awakenedInstance } = makeAgent({ tier: "free" });
+    awakenedInstance.setState(persistedState);
+    awakenedInstance.schedules.push(...persistedSchedules);
+
+    await awakenedInstance.ingest({
+      channel: "telegram",
+      channelUserId: "u1",
+      text: "después del reinicio",
+    });
+
+    expect(awakenedInstance.state.pendingMessages.map(({ text }: { text: string }) => text)).toEqual([
+      "antes del reinicio",
+      "después del reinicio",
+    ]);
+    expect(awakenedInstance.cancelSchedule).toHaveBeenCalledWith("persisted-buffer");
+    expect(
+      awakenedInstance.schedules.filter(
+        (schedule: { callback: string }) => schedule.callback === "processBuffer",
+      ),
+    ).toHaveLength(1);
+    expect(awakenedInstance.schedule).toHaveBeenCalledWith(8, "processBuffer", {});
   });
 });

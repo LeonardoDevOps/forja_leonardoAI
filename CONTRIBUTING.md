@@ -15,8 +15,9 @@ ayudas un montón.
 ## ¿Quieres mandar un arreglo? → Pull Request (vía fork)
 
 1. Dale **Fork** a este repo (botón arriba a la derecha).
-2. En tu fork, crea una rama y haz tu cambio. Usa Node 22 o 24 y pnpm 10.34.5. Si usas
-   Claude Code, pídele que corra `pnpm check` antes.
+2. En tu fork, crea una rama y haz tu cambio. Usa Node 22.18+ o 24.11+ y pnpm
+   10.34.5. Node 23 no está soportado. Si usas Claude Code, pídele que corra
+   `pnpm check` antes.
 3. Abre un **Pull Request** hacia `main` de este repo, explicando **qué cambia y por qué**.
 4. Mantén la rama actualizada. Para fusionar deben pasar `Node 22`, `Node 24` y
    `JavaScript y TypeScript` (CodeQL), resolverse las conversaciones y existir

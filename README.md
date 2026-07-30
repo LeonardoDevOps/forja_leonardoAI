@@ -52,7 +52,7 @@ npx forjabot init
 
 ### Opción B — manual (si ya programas)
 
-Necesitas Node.js 22 o 24 y pnpm 10.34.5.
+Necesitas Node.js 22.18+ o 24.11+ y pnpm 10.34.5. Node 23 no está soportado.
 
 ```bash
 git clone https://github.com/santmun/forja mi-chatbot

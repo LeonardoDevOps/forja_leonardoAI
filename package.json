@@ -5,7 +5,7 @@
   "type": "module",
   "packageManager": "pnpm@10.34.5",
   "engines": {
-    "node": ">=22 <25",
+    "node": ">=22.18 <23 || >=24.11 <25",
     "pnpm": ">=9 <11"
   },
   "scripts": {
@@ -37,7 +37,7 @@
     "@ai-sdk/anthropic": "^3.0.0",
     "@ai-sdk/openai": "^3.0.68",
     "@ai-sdk/xai": "^3.0.106",
-    "agents": "^0.3.10",
+    "agents": "0.20.1",
     "ai": "^6.0.0",
     "hono": "^4.12.32",
     "react": "19.0.0",
@@ -50,7 +50,7 @@
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "9.39.5",
     "eslint-config-prettier": "10.1.8",
-    "miniflare": "4.20260426.0",
+    "miniflare": "4.20260730.0",
     "prettier": "3.9.6",
     "tsx": "4.23.1",
     "typescript": "5.9.3",
