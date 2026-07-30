@@ -117,6 +117,13 @@ vulnerable en Windows. No se fuerza la major 2 transitiva. El residual debe
 reevaluarse antes del 2026-09-30 o durante la siguiente migración de `agents`,
 lo que ocurra primero.
 
+## Auditoría de preparación para producción
+
+El [informe de auditoría y endurecimiento](./docs/auditoria-produccion-2026-07-30.md)
+compara el fork con la base original, registra las vulnerabilidades por
+severidad, resume los siete PR aplicados y documenta los riesgos residuales y
+las acciones pendientes antes de un despliegue.
+
 ## Respuesta
 
 Los mantenedores intentarán confirmar la recepción, evaluar severidad y acordar una
