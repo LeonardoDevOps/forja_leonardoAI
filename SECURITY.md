@@ -48,6 +48,27 @@ Los problemas de configuración que requieren exponer deliberadamente el panel, 
 credenciales débiles o modificar el código pueden quedar fuera de alcance, pero se
 agradece reportarlos de forma privada si producen un riesgo inesperado.
 
+## Acceso administrativo y control-plane
+
+El panel `/admin` siempre exige HTTP Basic Auth con el usuario `admin`.
+`DASHBOARD_PASSWORD` debe tener al menos 16 caracteres; una configuración
+ausente, vacía o corta devuelve `503` y no ejecuta ninguna ruta administrativa.
+Las respuestas, incluidos los rechazos, llevan `Cache-Control: no-store`,
+`X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff` y
+`Referrer-Policy: no-referrer`.
+
+Rota la contraseña con `wrangler secret put DASHBOARD_PASSWORD`, publica la
+nueva versión y verifica el acceso sin reutilizar la credencial anterior. Usa
+un valor aleatorio y exclusivo almacenado en un gestor de contraseñas; no lo
+guardes en código, chats, logs ni `wrangler.toml`.
+
+La API opcional `/api/*` falla cerrada y solo acepta
+`CONTROL_PLANE_TOKEN` de al menos 32 caracteres. No se implementa backoff
+local: el estado en memoria de un isolate de Workers no es compartido ni
+durable, y añadir KV/Durable Objects solo para intentos fallidos complicaría el
+despliegue. Para límites confiables por IP, configura Rate Limiting, WAF o
+Cloudflare Access delante del Worker.
+
 ## Autenticación de webhooks
 
 Forja verifica la autenticidad antes de parsear o enrutar mensajes:

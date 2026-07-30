@@ -189,13 +189,20 @@ Y en `wrangler.toml`, dentro de `[vars]`, pon `LLM_PROVIDER = "openai"`.
 
 ### Paso 1.5 — Contraseña del panel (Basic Auth)
 
-El panel de administración (`/admin`) se protege con **autenticación básica HTTP**. El usuario siempre es `admin`; la contraseña la elige el miembro:
+El panel de administración (`/admin`) se protege con **autenticación básica
+HTTP**. El usuario siempre es `admin`. Pide al miembro que genere con su gestor
+de contraseñas un valor aleatorio, exclusivo y de al menos 16 caracteres. No lo
+pidas ni lo muestres en este chat; el miembro lo introduce directamente en el
+prompt oculto:
 
 ```bash
 wrangler secret put DASHBOARD_PASSWORD
 ```
 
-(Pídele que elija una contraseña y la pegue en la entrada oculta. Para entrar al panel después: usuario `admin`, contraseña la que acaba de poner.)
+Para entrar al panel después: usuario `admin`, contraseña la que acaba de
+guardar. Una contraseña ausente o corta deshabilita el panel con un error de
+configuración. Para rotarla, repite el mismo comando, vuelve a publicar y
+verifica en una ventana privada.
 
 ### Paso 1.6 — Desplegar
 
@@ -621,7 +628,7 @@ Con el bot YA vivo y probado (no antes), remata así — sin presión, ya probó
 **Secrets** (se guardan con `wrangler secret put NOMBRE`):
 
 - `ANTHROPIC_API_KEY` **o** `OPENAI_API_KEY` — requerido (el cerebro del bot, según el proveedor elegido en la Fase 1; se puede cambiar después desde el panel → Configuración → Modelo de IA).
-- `DASHBOARD_PASSWORD` — requerido en Pro (Basic Auth del panel; usuario fijo `admin`).
+- `DASHBOARD_PASSWORD` — requerido en Pro (Basic Auth del panel; usuario fijo `admin`; mínimo 16 caracteres).
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` — si usa Telegram.
 - `OWNER_TELEGRAM_CHAT_ID` — chat_id del dueño para los avisos por Telegram (el dueño le da `/start` a su propio bot).
 - `MANYCHAT_API_KEY`, `MANYCHAT_WEBHOOK_SECRET` — si usa ManyChat.
