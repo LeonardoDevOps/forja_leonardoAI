@@ -104,20 +104,20 @@ con resolución DNS y controles de red confiables.
 
 ## Dependencias transitivas
 
-La resolución de pnpm fija `@modelcontextprotocol/sdk 1.30.0` bajo
-`agents 0.3.10`. Esa versión mantiene las protecciones de
-`GHSA-345p-7cg4-v4c7` y admite de forma oficial
-`@hono/node-server ^1.19.9 || ^2.0.5`. El override de Hono selecciona 2.0.12 y
-cierra `GHSA-frvp-7c67-39w9` sin actualizar `agents` a una serie pre-1.0
-incompatible.
+`agents` está fijado exactamente en 0.20.1 para evitar saltos pre-1.0
+automáticos. Su árbol resuelve una sola versión de PartyServer 0.5.9, MCP SDK
+1.30.0, MCP client/server 2.0.0 y `@hono/node-server 2.0.12`; no necesita los
+overrides temporales de MCP/Hono y mantiene cerrados `GHSA-345p-7cg4-v4c7` y
+`GHSA-frvp-7c67-39w9`. Las integraciones opcionales x402, Codemode y AI Chat no
+se instalan porque Forja no las importa.
 
 El lockfile debe instalarse siempre con `--frozen-lockfile`.
 `pnpm security:audit` revisa desde severidad LOW y el workflow
 `Dependency Audit` ejecuta semanalmente la instalación, todos los gates de
 calidad y la auditoría. La política, cadencia y registro de overrides están en
-la [guía de mantenimiento](./docs/dependency-maintenance.md). La migración
-deliberada de `agents` se mantiene separada en el
-[plan 016](./plans/016-migrar-agents-0-20.md).
+la [guía de mantenimiento](./docs/dependency-maintenance.md). La compatibilidad
+de estado, schedules y rollback de `agents` está documentada en la
+[guía de migración](./docs/agents-0.20-migration.md).
 
 ## Gobernanza de alertas y controles del repositorio
 
