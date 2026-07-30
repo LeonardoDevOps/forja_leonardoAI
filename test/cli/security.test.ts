@@ -5,8 +5,6 @@ import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-// El paquete del CLI es JavaScript ESM puro y se publica sin declaraciones TypeScript.
-// @ts-expect-error módulo JavaScript probado desde la suite TypeScript del monorepo
 import {
   CliSecurityError,
   atomicWriteFile,
