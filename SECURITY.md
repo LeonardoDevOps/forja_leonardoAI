@@ -117,6 +117,45 @@ vulnerable en Windows. No se fuerza la major 2 transitiva. El residual debe
 reevaluarse antes del 2026-09-30 o durante la siguiente migración de `agents`,
 lo que ocurra primero.
 
+## Gobernanza de alertas y controles del repositorio
+
+La cuenta administradora del repositorio es responsable de revisar semanalmente,
+cada lunes, las alertas de CodeQL y Dependabot. La severidad determina el plazo
+de triaje:
+
+- `CRITICAL` y `HIGH`: evaluar en un día laborable y bloquear releases hasta
+  corregirlas o documentar un descarte revisado;
+- `MEDIUM`: evaluar en la revisión semanal y asignar corrección, mitigación o
+  fecha de reevaluación;
+- `LOW`: revisar mensualmente y agrupar el mantenimiento compatible.
+
+Una alerta `HIGH` solo puede cerrarse sin cambio de código cuando la
+justificación registra alcance, alcanzabilidad, impacto, mitigación, evidencia y
+fecha de reevaluación, y otra persona con permisos de mantenimiento la revisa.
+Mientras el repositorio tenga un único mantenedor, esas alertas deben corregirse
+o esperar a que se incorpore un segundo revisor: no se acepta la
+autoaprobación. La revisión dedicada del CLI y sus criterios están registrados
+en el [plan 012](./plans/012-revision-seguridad-cli.md).
+
+`main` exige una rama actualizada, una aprobación, resolución de conversaciones
+y los checks `Node 22`, `Node 24` y `JavaScript y TypeScript` (CodeQL). Los
+pushes forzados y la eliminación de la rama están deshabilitados. Existe un
+bypass administrativo temporal porque solo hay una cuenta con permisos de
+escritura; debe retirarse al incorporar un segundo mantenedor para evitar
+bloquear todos los merges.
+
+Dependency Graph, Dependabot Alerts y Dependabot Security Updates permanecen
+habilitados. Las actualizaciones se ejecutan semanalmente según
+`.github/dependabot.yml` y siempre requieren revisión: un PR automatizado no
+autoriza cambios en `member/`, placeholders de `wrangler.toml`, secretos ni
+configuración privada.
+
+Dependency Review bloquea nuevas dependencias `HIGH` cuando GitHub permite
+consultar la API. GitHub devuelve `403` para ese análisis en pull requests de
+forks; por ello el workflow lo omite explícitamente en este fork y no debe
+interpretarse como un gate efectivo. Al portar los cambios a un repositorio
+canónico, debe verificarse que `Revisar dependencias` se ejecute y quede verde.
+
 ## Auditoría de preparación para producción
 
 El [informe de auditoría y endurecimiento](./docs/auditoria-produccion-2026-07-30.md)
