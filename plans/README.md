@@ -30,9 +30,36 @@ condiciones de parada y actualizar aquí su estado.
 | 006 | [Endurecer egress de medios y DNS](./006-endurecer-egress-medios-dns.md)         |        P1 | Completado | Ninguna       |
 | 007 | [Eliminar los 33 avisos ESLint](./007-eliminar-avisos-eslint.md)                 |        P1 | COMPLETADO | 005, 006      |
 | 008 | [Elevar cobertura administrativa](./008-elevar-cobertura-admin.md)               |        P2 | COMPLETADO | Ninguna       |
+| 009 | [Autenticar webhooks de canales](./009-autenticar-webhooks-canales.md)           |        P0 | COMPLETADO | Ninguna       |
 
 Estados permitidos para los planes pendientes: `TODO`, `EN PROGRESO`,
 `COMPLETADO`, `BLOQUEADO: <motivo>` o `RECHAZADO: <motivo>`.
+
+## Resultado del plan 009
+
+Implementado el 2026-07-30 en la rama
+`advisor/009-authenticate-webhooks`, creada desde `origin/main` en
+`792bc63`.
+
+- Telegram exige `X-Telegram-Bot-Api-Secret-Token` y falla cerrado si
+  `TELEGRAM_WEBHOOK_SECRET` falta o no coincide.
+- Twilio valida HMAC-SHA1/base64 sobre la URL pública exacta y todos los
+  parámetros del formulario antes de ingerir. Las instalaciones con proxy
+  pueden fijar `TWILIO_WEBHOOK_URL`.
+- ManyChat exige `X-Forja-Webhook-Secret`; el mismo control protege
+  `/webhooks/learn/manychat` para impedir capturas envenenadas.
+- La comparación timing-safe y la firma Twilio viven en `src/http-auth.ts`; las
+  copias de admin y WhatsApp se sustituyeron sin cambiar su comportamiento.
+- Las guías separan las credenciales de API de los secretos de webhook y
+  prohíben pegarlos en chats, código o plantillas.
+- Validación: lint sin warnings, tipos, 520 pruebas y cobertura global
+  (83,31 % líneas) superados; `src/http-auth.ts` queda al 100 % de líneas y el
+  gate administrativo conserva sus 32 comparaciones.
+- Desviación local documentada: `check:ci` se detuvo únicamente en el chequeo
+  global de formato por los finales CRLF heredados del checkout de Windows
+  (seguimiento en el plan 011). El formato de todos los archivos modificados,
+  `git diff --check` y el resto de gates equivalentes sí pasan. No se
+  normalizaron 195 archivos ajenos al alcance.
 
 ## Orden y dependencias de la segunda ola
 

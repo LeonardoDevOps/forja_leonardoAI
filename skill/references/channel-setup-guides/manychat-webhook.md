@@ -22,7 +22,7 @@ Al terminar esta guía, cuando un cliente te escriba por Instagram (o Messenger,
 
 ---
 
-## Paso 1: Consigue tu llave de ManyChat (API Key)
+## Paso 1: Guarda la API Key y crea un secreto para el webhook
 
 1. Entra a tu cuenta de **ManyChat** (manychat.com).
 2. Ve a **Settings** (Configuración) → **API**.
@@ -33,7 +33,16 @@ Al terminar esta guía, cuando un cliente te escriba por Instagram (o Messenger,
    ```
    Cuando te lo pida, pega la API Key y dale Enter.
 
-> Esta misma llave la vas a usar más abajo como un encabezado (`X-Api-Key`) para que tu bot confirme que el mensaje viene de TU ManyChat y no de un desconocido.
+La API Key solo sirve para que Forja responda mediante la API de ManyChat. No la
+envíes de vuelta en cada webhook. Crea además una contraseña aleatoria distinta,
+guárdala en tu gestor de contraseñas y registra el mismo valor en Cloudflare:
+
+```bash
+pnpm wrangler secret put MANYCHAT_WEBHOOK_SECRET
+```
+
+Ejecuta tú mismo el comando interactivo. No pegues la contraseña en el chat, en
+el código ni en `wrangler.toml`.
 
 ---
 
@@ -67,8 +76,12 @@ Aquí le dices a ManyChat: "cuando llegue un mensaje, pregúntale a mi bot qué 
    ```
    > Los `{{...}}` son etiquetas de ManyChat: las rellena solas con el ID del cliente, su mensaje y su nombre.
 5. Agrega un **header** (encabezado):
-   - Nombre: `X-Api-Key`
-   - Valor: tu `MANYCHAT_API_KEY` (la misma llave del Paso 1)
+   - Nombre: `X-Forja-Webhook-Secret`
+   - Valor: tu `MANYCHAT_WEBHOOK_SECRET` (la contraseña aleatoria del Paso 1)
+
+El Worker rechaza el request si el header falta, no coincide o el secret todavía
+no está configurado. Si usas el endpoint temporal
+`/webhooks/learn/manychat`, configura el mismo header allí.
 
 ---
 
@@ -102,7 +115,10 @@ Cuando el bot necesita pasarte un cliente a ti (handoff), **no** te avisa por Ma
 ## Si algo falla
 
 - **El bot no contesta en el canal:** revisa que la URL del External Request termine en `/webhooks/manychat` y que el método sea `POST`.
-- **Error de autorización / rechaza el mensaje:** confirma que agregaste el header `X-Api-Key` con tu `MANYCHAT_API_KEY` exacta, y que corriste `pnpm run deploy` después de guardar el secreto.
+- **Error de autorización / rechaza el mensaje:** confirma que agregaste el
+  header `X-Forja-Webhook-Secret` con el mismo valor guardado como
+  `MANYCHAT_WEBHOOK_SECRET`, y que publicaste el Worker después de guardar el
+  secret.
 - **El cliente no ve la respuesta:** asegúrate de que mapeaste el campo `reply` en la acción "Send Message".
 - **No llega ningún mensaje a tu bot:** revisa que el canal (Instagram/Messenger/etc.) esté bien conectado en ManyChat y que el flujo esté activo (publicado).
 
@@ -110,14 +126,16 @@ Cuando el bot necesita pasarte un cliente a ti (handoff), **no** te avisa por Ma
 
 ## Resumen
 
-| Qué                | Valor                                                                                                                       |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| Secreto            | `MANYCHAT_API_KEY` (y `OWNER_TELEGRAM_CHAT_ID` o `TWILIO_HANDOFF_CONTENT_SID` + `OWNER_WA_NUMBER` para los avisos al dueño) |
-| Webhook            | `<worker-url>/webhooks/manychat` (método `POST`)                                                                            |
-| Header             | `X-Api-Key: <MANYCHAT_API_KEY>`                                                                                             |
-| Campo de respuesta | `reply` (mapéalo a "Send Message")                                                                                          |
-| Canales            | Instagram, Messenger, WhatsApp, Telegram (conectados en ManyChat)                                                           |
-| Costo              | Plan de ManyChat (tiene capa gratis limitada)                                                                               |
-| Dificultad         | Media                                                                                                                       |
+| Qué                | Valor                                                                       |
+| ------------------ | --------------------------------------------------------------------------- |
+| API saliente       | `MANYCHAT_API_KEY`                                                          |
+| Autenticación      | `MANYCHAT_WEBHOOK_SECRET`                                                   |
+| Webhook            | `<worker-url>/webhooks/manychat` (método `POST`)                            |
+| Header             | `X-Forja-Webhook-Secret: <MANYCHAT_WEBHOOK_SECRET>`                         |
+| Campo de respuesta | `reply` (mapéalo a "Send Message")                                          |
+| Avisos al dueño    | `OWNER_TELEGRAM_CHAT_ID` o `TWILIO_HANDOFF_CONTENT_SID` + `OWNER_WA_NUMBER` |
+| Canales            | Instagram, Messenger, WhatsApp, Telegram (conectados en ManyChat)           |
+| Costo              | Plan de ManyChat (tiene capa gratis limitada)                               |
+| Dificultad         | Media                                                                       |
 
 Listo. Con ManyChat tu bot atiende varios canales desde un solo lugar.
